@@ -158,6 +158,7 @@ module Tom2Pop_sub_program_variables    !----- ã§í ïœêî -----
 !!	Double Precision,parameter::mdos = 1.86314779783618E-16      ! pow(ml*mt*mt, 1./3.) eV*s^2/cm^2
 !     ml = 0.9163*m0;               // 5.2097e-16 eV*s^2/cm^2
 !     mt = 0.1880*m0*1.1756/Egap;   // 1.1220e-16 eV*s^2/cm^2
+!				#define m0     5.68562975e-16      // eV*s^2/cm^2
 	integer,parameter:: LA=1
 	integer,parameter:: TA=2
     integer,parameter:: LO=3
@@ -188,7 +189,7 @@ module Tom2Pop_sub_program_variables    !----- ã§í ïœêî -----
 !				#define ecoulom   -1.60217653e-19  // electron charge in Coulombs 
 !				#define kb     8.61734318e-05      // eV/K 
 !				#define hbar   6.58211915e-16      // eV*s 
-!				#define m0     5.68562975e-16      // eV*s^2/cm^2
+
 !				#define eps0   5.52634972e+05      // e/V/cm permittivity of free space
 !				// material constants for silicon
 !				#define asi    5.431e-08        // lattice constant, cm 
@@ -491,7 +492,7 @@ end subroutine data_input
 !
 subroutine param
 	implicit none      
-	Double Precision aml, amt, eg, eps
+	Double Precision ml, mt, eps, Egap			!, eg		!! eg to be removed
 	Double Precision rou, sv, cl, z2, da, dof, dog, bkt
 !!      Double Precision amd, amc
 	Double Precision amc      
@@ -506,7 +507,7 @@ subroutine param
 	Double Precision,parameter::q = 1.0d0               ! e
 	Double Precision,parameter::hbar  = 6.58211915e-16  ! eV*s 
 	Double Precision,parameter::ep0 = 5.52634972e+05    ! e/V/cm    !ê^ãÛóUìdó¶
-	Double Precision,parameter::am0 = 5.68562975e-16    ! eV*s^2/cm^2  !electron mass
+	Double Precision,parameter::m0 = 5.68562975e-16    ! eV*s^2/cm^2  !electron mass
 !      
 !!!      remind   LA=1, TA=2, LO=3, TO=4
 	Double Precision::Absorption = -1.0, EMS = 1.0
@@ -527,9 +528,14 @@ subroutine param
 !    
 !---( ìdéqÇÃècóLå¯éøó , â°óLå¯éøó , ã÷êßë—ïù, óUìdó¶ )---
 !
-	aml  = 0.916*am0 ! ècóLå¯éøó 
-	amt  = 0.196*am0 ! â°óLå¯éøó      
-	eg   = 1.12      ! ã÷êßë—ïù[eV]
+	Egap = 1.1756 - 8.8131e-05*Temp - 2.6814e-07*Temp*Temp
+	write(*,*) 'Egap_Pop=',Egap					! debug
+	write(8,*) 'Egap_Pop=',Egap					! debug
+!	aml  = 0.916*m0 ! ècóLå¯éøó 
+!	amt  = 0.196*m0 ! â°óLå¯éøó 
+     ml = 0.9163*m0					!// 5.2097e-16 eV*s^2/cm^2
+     mt = 0.1880*m0*1.1756/Egap		!// 1.1220e-16 eV*s^2/cm^2
+!	eg   = 1.12      ! ã÷êßë—ïù[eV]			! to be removed
 	eps  = 11.7*ep0  ! SióUìdó¶
 !
 !---( ÉtÉHÉmÉìéUóêÇÃèîÉpÉâÉÅÅ[É^ )---
@@ -557,23 +563,27 @@ subroutine param
 !
 !---( ÉoÉìÉhÇÃîÒìôï˚ê´ )---
 !
-	mdos  = (aml*amt*amt)**(1.0/3.0) !ëäèÊïΩãœ effective m 0.328?
-	amc  = 3.0/(1.0/aml+2.0/amt)!ãtêîëäâ¡ïΩãœ effective m at B edge 0.266?
-	tm(1)=sqrt(aml/mdos) !èc 1.67
-	tm(2)=sqrt(amt/mdos) !â° 0.773
-	tm(3)=sqrt(amt/mdos) !â° 0.773
+	mdos  = (ml*mt*mt)**(1.0/3.0) !ëäèÊïΩãœ effective m 0.328?
+	amc  = 3.0/(1.0/ml+2.0/mt)!ãtêîëäâ¡ïΩãœ effective m at B edge 0.266?
+	tm(1)=sqrt(ml/mdos) !èc 1.67
+	tm(2)=sqrt(mt/mdos) !â° 0.773
+	tm(3)=sqrt(mt/mdos) !â° 0.773
 	smh  = sqrt(2.*mdos*q)/hbar    ! h->hbar
-	hhml = hbar/aml/q*hbar/2.0 !èc ! h->hbar
-	hhmt = hbar/amt/q*hbar/2.0 !â° ! h->hbar
-	hm(1)= hbar/aml !èc ! h->hbar
-	hm(2)= hbar/amt !â° ! h->hbar
-	hm(3)= hbar/amt !â° ! h->hbar
+	hhml = hbar/ml/q*hbar/2.0 !èc ! h->hbar
+	hhmt = hbar/mt/q*hbar/2.0 !â° ! h->hbar
+	hm(1)= hbar/ml !èc ! h->hbar
+	hm(2)= hbar/mt !â° ! h->hbar
+	hm(3)= hbar/mt !â° ! h->hbar
 !
 !---( ÉoÉìÉhÇÃîÒï˙ï®ê¸ê´ )---
 !
-	alpha   = (1.0-amc/am0)**2/eg !Éø~0.5
-!	alpha2  = 2.0*alpha
-!	alpha4  = 4.0*alpha
+!!	alpha   = (1.0-amc/m0)**2/eg !Éø~0.5			! to be removed
+!!	write(*,*) 'alpha_Tom=',alpha				! debug
+!!	write(8,*) 'alpha_Tom=',alpha				! debug
+	alpha = 0.5*1.1250281/Egap;
+	write(*,*) 'alpha_Pop=',alpha				! debug
+	write(8,*) 'alpha_Pop=',alpha				! debug
+!
 !
 	wo     = hwo*q/hbar ! O-phonon angular frequency [J -> rad/s]  h -> hbar ?
 	no     = 1.0/(exp(hwo/bktq)-1.0) !probability
@@ -595,29 +605,29 @@ subroutine param
         pvz(i) = 0.0d0
 	end do
 	pvx(1) = -0.85*PQMAX  ! -X axis valley
-	mx(1) = aml
-	my(1) = amt
-	mz(1) = amt
+	mx(1) = ml
+	my(1) = mt
+	mz(1) = mt
 	pvx(2) = +0.85*PQMAX  ! +X axis valley
-	mx(2) = aml
-	my(2) = amt
-	mz(2) = amt
+	mx(2) = ml
+	my(2) = mt
+	mz(2) = mt
 	pvy(3) = -0.85*PQMAX  ! -Y axis valley
-	mx(3) = amt
-	my(3) = aml
-	mz(3) = amt
+	mx(3) = mt
+	my(3) = ml
+	mz(3) = mt
 	pvy(4) = +0.85*PQMAX  ! +Y axis valley
-	mx(4) = amt
-	my(4) = aml
-	mz(4) = amt
+	mx(4) = mt
+	my(4) = ml
+	mz(4) = mt
 	pvz(5) = -0.85*PQMAX  ! -Z axis valley
-	mx(5) = amt
-	my(5) = amt
-	mz(5) = aml
+	mx(5) = mt
+	my(5) = mt
+	mz(5) = ml
 	pvz(6) = +0.85*PQMAX  ! +Z axis valley
-	mx(6) = amt
-	my(6) = amt
-	mz(6) = aml
+	mx(6) = mt
+	my(6) = mt
+	mz(6) = ml
 !
 !---( éUóêÉåÅ[ÉgÇÃåvéZ )---
 !
@@ -723,13 +733,13 @@ subroutine param
         end do
 !        
 !!----- debug scattering rate begin ------
-!	do  ie=1,iemax
-!		eee=de*float(ie)    
-!		write (*,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
-!				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
-!		write (8,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
-!				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
-!	end do
+	do  ie=1,iemax
+		eee=de*float(ie)    
+		write (*,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
+		write (8,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
+	end do
 !!------ debug scattering rate end -------
 !
 !---( éUóêÉåÅ[ÉgÇÃòaÇÃåvéZ )---
