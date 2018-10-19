@@ -145,16 +145,17 @@ end function gasdev
 end module random_number
 !========================================================================================
 !****************************************************************************************
-module Pop_sub_program_variables    !----- 共通変数 -----
+module Tom2Pop_sub_program_variables    !----- 共通変数 -----
+!		from Pop_sub_program_variables
 	implicit none
 	Double Precision,parameter::QMIN = 1.0              ! // nearly zero compared to QMAX
 	Double Precision,parameter::QMAX = 1.1569113068e+08 !  2*pi/asi
 !    Double Precision,parameter::asi = 5.431e-08         ! // lattice constant, cm
 	Double Precision,parameter::Rws = 2.1224e-8         !  asi*pow(3./(16.*pi), 1./3.)
-	Double Precision,parameter::alpha = 0.481575201309447
+!	Double Precision,parameter::alpha = 0.481575201309447
 !                                           Egap = 1.1756 - 8.8131e-05*T - 2.6814e-07*T*T;
 !		                                     alpha = 0.5*1.1250281/Egap; 
-	Double Precision,parameter::mdos = 1.86314779783618E-16      ! pow(ml*mt*mt, 1./3.) eV*s^2/cm^2
+!!	Double Precision,parameter::mdos = 1.86314779783618E-16      ! pow(ml*mt*mt, 1./3.) eV*s^2/cm^2
 !     ml = 0.9163*m0;               // 5.2097e-16 eV*s^2/cm^2
 !     mt = 0.1880*m0*1.1756/Egap;   // 1.1220e-16 eV*s^2/cm^2
 	integer,parameter:: LA=1
@@ -169,7 +170,7 @@ module Pop_sub_program_variables    !----- 共通変数 -----
 !
     Double Precision,parameter::DLA = 6.39   ! debug 13.0= 6.39 x ~2
     Double Precision,parameter::DTA = 3.01   ! debug 6.0=3.01 x ~2
-    Double Precision,parameter::Temp = 300.0
+!    Double Precision,parameter::Temp = 300.0
     Double Precision,parameter::Absorption = -1.0
     Double Precision,parameter::EMS = 1.0
 !			  // f- and g-phonon norm, to be multiplied by QMAX
@@ -180,26 +181,46 @@ module Pop_sub_program_variables    !----- 共通変数 -----
                          &  reshape( (/-0.196e-2, -0.250e-2, -0.156e-2,     0.137e-2, &
                          &              9.00e5,    5.33e5,    0.0000,      -2.91e5,   &
                          &              0.0,       0.0,       9.87682e13,   1.027e14 /),(/4,3/) )
-!// Universal Constants from http://physics.nist.gov/cuu/Constants
-!!#define pi   3.14159265
-!#define pi2  6.28318531
-!#define echarge   -1.0             // electron charge 
-!#define ecoulom   -1.60217653e-19  // electron charge in Coulombs 
-!!#define kb     8.61734318e-05      // eV/K 
-!!#define hbar   6.58211915e-16      // eV*s 
-!#define m0     5.68562975e-16      // eV*s^2/cm^2
-!#define eps0   5.52634972e+05      // e/V/cm permittivity of free space
-
-!// material constants for silicon
-!#define asi    5.431e-08        // lattice constant, cm 
-!!#define rho    1.4516e+12       // density (eV*s^2/cm^5) (2.329 g/cm^3) 
-!#define epssi  6.46582917e+06   // e/V/cm permittivity of Si 11.7*eps0
-    
-end module Pop_sub_program_variables
+!				// Universal Constants from http://physics.nist.gov/cuu/Constants
+!				#define pi   3.14159265
+!				#define pi2  6.28318531
+!				#define echarge   -1.0             // electron charge 
+!				#define ecoulom   -1.60217653e-19  // electron charge in Coulombs 
+!				#define kb     8.61734318e-05      // eV/K 
+!				#define hbar   6.58211915e-16      // eV*s 
+!				#define m0     5.68562975e-16      // eV*s^2/cm^2
+!				#define eps0   5.52634972e+05      // e/V/cm permittivity of free space
+!				// material constants for silicon
+!				#define asi    5.431e-08        // lattice constant, cm 
+!				!#define rho    1.4516e+12       // density (eV*s^2/cm^5) (2.329 g/cm^3) 
+!				#define epssi  6.46582917e+06   // e/V/cm permittivity of Si 11.7*eps0
+!
+!		from Tom_global_variables   !----- 共通変数 -----
+	Double Precision dt,Temp,fx
+	Double Precision hwo,de
+!	Double Precision :: swk(17,2400)=0.0d0
+!	Double Precision :: swk(17,4000)=0.0d0
+	Double Precision :: swk(17,3000)=0.0d0
+	Double Precision mdos      
+	Double Precision gm                 
+	Double Precision smh,hhml,hhmt         
+	Double Precision alpha		!,alpha2	!,alpha4          
+	Double Precision tm(3)                
+	Double Precision hm(3)                
+	Double Precision qh                   
+	Double Precision bktq                  
+	Double Precision ef
+	integer inum,jtl
+	integer iemax
+	integer, parameter::PX=5,PY=6,PZ=7,EE=8,TS=9,XXX=1,YYY=2
+	Double Precision pvx(6), pvy(6), pvz(6)  ! 6 valley p offset
+	Double Precision mx(6), my(6), mz(6)     ! mx,my,mz at 6 valleys
+!
+end module Tom2Pop_sub_program_variables
 !****************************************************************************************
 module Pop_sub_programs
-	use Pop_sub_program_variables
-	use Tom_global_variables
+	use Tom2Pop_sub_program_variables
+!	use Tom_global_variables
 	use random_number
 	implicit none
 	contains
@@ -396,33 +417,11 @@ end function acrate3
 end module Pop_sub_programs  
 !========================================================================================
 !****************************************************************************************   
-module Tom_global_variables   !----- 共通変数 -----
-	implicit none
-	Double Precision dt,tem,fx
-	Double Precision hwo,de
-!	Double Precision :: swk(17,2400)=0.0d0
-!	Double Precision :: swk(17,4000)=0.0d0
-	Double Precision :: swk(17,3000)=0.0d0
-	Double Precision amd      
-	Double Precision gm                 
-	Double Precision smh,hhml,hhmt         
-	Double Precision af,af2,af4          
-	Double Precision tm(3)                
-	Double Precision hm(3)                
-	Double Precision qh                   
-	Double Precision bktq                  
-	Double Precision ef
-	integer inum,jtl
-	integer iemax
-	integer, parameter::PX=5,PY=6,PZ=7,EE=8,TS=9,XXX=1,YYY=2
-	Double Precision pvx(6), pvy(6), pvz(6)  ! 6 valley p offset
-	Double Precision mx(6), my(6), mz(6)     ! mx,my,mz at 6 valleys
-!
-end module Tom_global_variables
+
 !========================================================================================
 module Tom_sub_programs
-	use Pop_sub_program_variables  !!!!!!
-	use Tom_global_variables
+	use Tom2Pop_sub_program_variables
+!	use Tom_global_variables
 	use random_number
 	use Pop_sub_programs
 	implicit none
@@ -454,19 +453,19 @@ subroutine data_input(inum_dummy,SimTime)
 	read(5,*) jtl      ! number of iteration (typ. 1000~10000)
 	read(5,*) dt       ! time step [s] (typ. 5E-15 = 5fs)
 	SimTime=jtl*dt		! Total Simulation Time [s] 
-	read(5,*) tem      ! temperature [K] (typ.300)
+	read(5,*) Temp      ! temperature [K] (typ.300)
 	read(5,*) fx       ! electric field [KV/cm] 
 !
 	write(*,*) inum/1E6,' M particles'
 	write(*,*) jtl, ' iteration'
 	write(*,*) dt, ' sec'
-	write(*,*) tem, ' K'
+	write(*,*) Temp, ' K'
 	write(*,*) fx, ' KV/cm'
 !
 	write(8,*) inum/1E6,' M particles'
 	write(8,*) jtl, ' iteration'
 	write(8,*) dt, ' sec'
-	write(8,*) tem, ' K'
+	write(8,*) Temp, ' K'
 	write(8,*) fx, ' KV/cm'
 !	
 	fx=fx*1000.0d0   !  kV/cm -> V/cm
@@ -479,10 +478,10 @@ end subroutine data_input
     Double Precision Ed,sgamma,dosconst
 !    
     if (Ed > 0.0) then
-	  sgamma = sqrt(Ed*(1.+af*Ed)) 
+	  sgamma = sqrt(Ed*(1.+alpha*Ed)) 
 !			// includes 2x for spin, else it would be 4x in the denominator
 	  dosconst = 2.0*pi*pi*hbar*hbar*hbar
-	  DOSe = ((2.0*amd)**1.5)*sgamma*(1. + af2*Ed)/dosconst
+	  DOSe = ((2.0*mdos)**1.5)*sgamma*(1. + 2.0*alpha*Ed)/dosconst
     else
       DOSe=0.0
     end if
@@ -552,18 +551,18 @@ subroutine param
 	dog  = 1.1e9      ! eV/cm unit
 	hwo  = 0.06       ! 谷間fg光学フォノンエネルギー[eV]
 !
-	bkt  = bk*tem
+	bkt  = bk*Temp
 	bktq = bkt/q
 	qh   = q/hbar     ! h->hbar
 !
 !---( バンドの非等方性 )---
 !
-	amd  = (aml*amt*amt)**(1.0/3.0) !相乗平均 effective m 0.328?
+	mdos  = (aml*amt*amt)**(1.0/3.0) !相乗平均 effective m 0.328?
 	amc  = 3.0/(1.0/aml+2.0/amt)!逆数相加平均 effective m at B edge 0.266?
-	tm(1)=sqrt(aml/amd) !縦 1.67
-	tm(2)=sqrt(amt/amd) !横 0.773
-	tm(3)=sqrt(amt/amd) !横 0.773
-	smh  = sqrt(2.*amd*q)/hbar    ! h->hbar
+	tm(1)=sqrt(aml/mdos) !縦 1.67
+	tm(2)=sqrt(amt/mdos) !横 0.773
+	tm(3)=sqrt(amt/mdos) !横 0.773
+	smh  = sqrt(2.*mdos*q)/hbar    ! h->hbar
 	hhml = hbar/aml/q*hbar/2.0 !縦 ! h->hbar
 	hhmt = hbar/amt/q*hbar/2.0 !横 ! h->hbar
 	hm(1)= hbar/aml !縦 ! h->hbar
@@ -572,14 +571,14 @@ subroutine param
 !
 !---( バンドの非放物線性 )---
 !
-	af   = (1.0-amc/am0)**2/eg !α~0.5
-	af2  = 2.0*af
-	af4  = 4.0*af
+	alpha   = (1.0-amc/am0)**2/eg !α~0.5
+!	alpha2  = 2.0*alpha
+!	alpha4  = 4.0*alpha
 !
 	wo     = hwo*q/hbar ! O-phonon angular frequency [J -> rad/s]  h -> hbar ?
 	no     = 1.0/(exp(hwo/bktq)-1.0) !probability
 !
-	dos    = (2.0*amd*q)**(3.0/2.0)/(4.0*pi**2*hbar**3) !DOS-factor  h->hbar
+	dos    = (2.0*mdos*q)**(3.0/2.0)/(4.0*pi**2*hbar**3) !DOS-factor  h->hbar
 !!      aco    = 2.0*pi*da/q*da*bktq/h*q/cl !音響フォノン
 	ofe    = pi*dof/wo*dof/rou/q*(no+1.0) !光学f生成
 	ofa    = ofe*no/(1.0+no) !光学f消滅
@@ -644,28 +643,28 @@ subroutine param
 !-----( 非有極性光学フォノン散乱 )--- scattering type 1->6; 2->7; 3->8; 4->9; 5->5
 !!!        eff=ei-hwo ! phonon emission
 !!!        if (eff > 0.0) then
-!!!           sef=sqrt(eff*(1.0+af*eff))
-!!!           swk(6,ie) = oge*sef*dos*(1.0+2.0*af*eff) !光学g emission
+!!!           sef=sqrt(eff*(1.0+alpha*eff))
+!!!           swk(6,ie) = oge*sef*dos*(1.0+2.0*alpha*eff) !光学g emission
 !!!        else
 !!!            swk(6,ie) = 0.
 !!!        end if
 !
 !!!        eff=ei+hwo ! phonon absorption
-!!!        sef=sqrt(eff*(1.0+af*eff))
-!!!        swk(7,ie) = oga*sef*dos*(1.0+2.0*af*eff) !光学g absorption
+!!!        sef=sqrt(eff*(1.0+alpha*eff))
+!!!        swk(7,ie) = oga*sef*dos*(1.0+2.0*alpha*eff) !光学g absorption
 !
 !!!        eff=ei-hwo
 !!!        if (eff > 0.0) then
-!!!           sef=sqrt(eff*(1.0+af*eff))
-!!!           swk(8,ie) = 2.0*z2*ofe*sef*dos*(1.0+2.0*af*eff)!光学f ems
+!!!           sef=sqrt(eff*(1.0+alpha*eff))
+!!!           swk(8,ie) = 2.0*z2*ofe*sef*dos*(1.0+2.0*alpha*eff)!光学f ems
 !!!        else
 !           swk(3,ie)=swk(2,ie)
 !!!           swk(8,ie)=0.
 !!!        end if
 !
 !!!        eff=ei+hwo
-!!!           sef=sqrt(eff*(1.+af*eff))
-!!!           swk(9,ie) = 2.0*z2*ofa*sef*dos*(1.0+2.0*af*eff) !光学f abs
+!!!           sef=sqrt(eff*(1.+alpha*eff))
+!!!           swk(9,ie) = 2.0*z2*ofa*sef*dos*(1.0+2.0*alpha*eff) !光学f abs
 !=====[ 光学フォノン散乱 Pop }===== scattering type 6 - 9
 ! 			 // the value of the overlap integral for inter-valley scattering may
 !  			 // be included in the coupling constants (Jacoboni 1983, p. 672)
@@ -792,7 +791,7 @@ subroutine initia(t,Elec,iv)
 		else
 			rn = grnd()
 			ei  = -bktq*log(rn)*1.5d0    !--- give E along exp{-E/(3/2kT)} ~39meV @300K
-			ak  = smh*sqrt(ei*(1.0+af*ei)) !--- E -> k
+			ak  = smh*sqrt(ei*(1.0+alpha*ei)) !--- E -> k
 			rn = grnd()
 			cb  = 1.0-2.0*rn ! cosθ
 			sb  = sqrt(1.0-cb*cb) ! sinθ
@@ -845,7 +844,7 @@ subroutine initia(t,Elec,iv)
 			Elec(n,PZ)=tm(1)*hbar*kz + pvz(iv(n)) ! 縦 Global pz
 			gk=hhml*kz**2+hhmt*(kx**2+ky**2)
 		end if
-		Elec(n,EE)=(sqrt(1.0+af4*gk)-1.0)/af2  ! Tomizawa (1.7)
+		Elec(n,EE)=(sqrt(1.0+4.0*alpha*gk)-1.0)/(2.0*alpha)  ! Tomizawa (1.7)
 !
 !         if (n<=100) then   ! debug
 !           write(*,*) n,Elec(n,PX),Elec(n,PY),Elec(n,PZ)  ! debug
@@ -908,7 +907,7 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 		ivv = iv(n)
 !
 !		if (eee < eee_Min_Limit) then	   				! ? kjh avoid infinite loop at do while in scat
-!			padjust = sqrt((eee_Min_Limit*(1.+af*eee_Min_Limit))/(eee*(1.+af*eee)))
+!			padjust = sqrt((eee_Min_Limit*(1.+alpha*eee_Min_Limit))/(eee*(1.+alpha*eee)))
 !			kx = pvx(ivv)/hbar + (kx - pvx(ivv)/hbar)*padjust
 !			ky = pvy(ivv)/hbar + (ky - pvy(ivv)/hbar)*padjust
 !			kz = pvz(ivv)/hbar + (kz - pvz(ivv)/hbar)*padjust
@@ -916,7 +915,7 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 !			eee=eee_Min_Limit   
 !		end if
 !		if (eee > eee_Max_Limit) then   				! ? kjh avoid infinite loop at do while in scat
-!			padjust = sqrt((eee_Max_Limit*(1.+af*eee_Max_Limit))/(eee*(1.+af*eee)))
+!			padjust = sqrt((eee_Max_Limit*(1.+alpha*eee_Max_Limit))/(eee*(1.+alpha*eee)))
 !			kx = pvx(ivv)/hbar + (kx - pvx(ivv)/hbar)*padjust
 !			ky = pvy(ivv)/hbar + (ky - pvy(ivv)/hbar)*padjust
 !			kz = pvz(ivv)/hbar + (kz - pvz(ivv)/hbar)*padjust
@@ -939,7 +938,7 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 !
 !!				tentatively skip after drift and/or scat
 !		if (eee < eee_Min_Limit) then	   				! ? kjh avoid infinite loop at do while in scat
-!			padjust = sqrt((eee_Min_Limit*(1.+af*eee_Min_Limit))/(eee*(1.+af*eee)))
+!			padjust = sqrt((eee_Min_Limit*(1.+alpha*eee_Min_Limit))/(eee*(1.+alpha*eee)))
 !			kx = pvx(ivv)/hbar + (kx - pvx(ivv)/hbar)*padjust
 !			ky = pvy(ivv)/hbar + (ky - pvy(ivv)/hbar)*padjust
 !			kz = pvz(ivv)/hbar + (kz - pvz(ivv)/hbar)*padjust
@@ -947,7 +946,7 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 !			eee=eee_Min_Limit   
 !		end if
 !		if (eee > eee_Max_Limit) then   				! ? kjh avoid infinite loop at do while in scat
-!			padjust = sqrt((eee_Max_Limit*(1.+af*eee_Max_Limit))/(eee*(1.+af*eee)))
+!			padjust = sqrt((eee_Max_Limit*(1.+alpha*eee_Max_Limit))/(eee*(1.+alpha*eee)))
 !			kx = pvx(ivv)/hbar + (kx - pvx(ivv)/hbar)*padjust
 !			ky = pvy(ivv)/hbar + (ky - pvy(ivv)/hbar)*padjust
 !			kz = pvz(ivv)/hbar + (kz - pvz(ivv)/hbar)*padjust
@@ -979,8 +978,8 @@ subroutine drift(tau,kx,ky,kz,eee,x,y,ivv)  ! Global kx, ky, kz
 !
 	cp  = hm((ivv-1)/2+1)*tau               ! m/h・τ
 
-	gk = eee*(1.0+af*eee)
-	sq = sqrt(1.0+af4*gk)      !--- anisotropic & non-parabolic
+	gk = eee*(1.0+alpha*eee)
+	sq = sqrt(1.0+4.0*alpha*gk)      !--- anisotropic & non-parabolic
 	x = x+cp*((kx-pvx(ivv)/hbar)+0.5*dkx)/sq   !--- dx=h/m・τ(kx +0.5・dkx)/sq
 !
 	kx=kx+dkx                   ! Global kx
@@ -994,7 +993,7 @@ subroutine drift(tau,kx,ky,kz,eee,x,y,ivv)  ! Global kx, ky, kz
 	else    ! ivv=5 or ivv=6
 		gk=hhml*skz+hhmt*(skx+sky)
 	end if
-	eee=(sqrt(1.0+af4*gk)-1.0)/af2            ! Tomizawa (1.7)
+	eee=(sqrt(1.0+4.0*alpha*gk)-1.0)/(2.0*alpha)            ! Tomizawa (1.7)
 !
 end subroutine drift
 !========================================================================================
@@ -1027,7 +1026,7 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph)  ! Global kx, ky, kz
 !---( 散乱前のエネルギーの計算 )---
 !
 		if (eee < eee_Min_Limit) then	   				! ? kjh avoid infinite loop at do while in scat
-			padjust = sqrt((eee_Min_Limit*(1.+af*eee_Min_Limit))/(eee*(1.+af*eee)))
+			padjust = sqrt((eee_Min_Limit*(1.+alpha*eee_Min_Limit))/(eee*(1.+alpha*eee)))
 			kx = pvx(ivv)/hbar + (kx - pvx(ivv)/hbar)*padjust
 			ky = pvy(ivv)/hbar + (ky - pvy(ivv)/hbar)*padjust
 			kz = pvz(ivv)/hbar + (kz - pvz(ivv)/hbar)*padjust
@@ -1035,7 +1034,7 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph)  ! Global kx, ky, kz
 			eee=eee_Min_Limit   
 		end if
 		if (eee > eee_Max_Limit) then   				! ? kjh avoid infinite loop at do while in scat
-			padjust = sqrt((eee_Max_Limit*(1.+af*eee_Max_Limit))/(eee*(1.+af*eee)))
+			padjust = sqrt((eee_Max_Limit*(1.+alpha*eee_Max_Limit))/(eee*(1.+alpha*eee)))
 			kx = pvx(ivv)/hbar + (kx - pvx(ivv)/hbar)*padjust
 			ky = pvy(ivv)/hbar + (ky - pvy(ivv)/hbar)*padjust
 			kz = pvz(ivv)/hbar + (kz - pvz(ivv)/hbar)*padjust
@@ -1043,9 +1042,9 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph)  ! Global kx, ky, kz
 			eee=eee_Max_Limit
 		end if
 !
-	gk = eee*(1.0+af*eee)
-	ki = sqrt(2.0*amd*gk)/hbar   ! Local k
-	ei=(sqrt(1.0+af4*gk)-1.0)/af2  ! Tomizawa (1.7)
+	gk = eee*(1.0+alpha*eee)
+	ki = sqrt(2.0*mdos*gk)/hbar   ! Local k
+	ei=(sqrt(1.0+4.0*alpha*gk)-1.0)/(2.0*alpha)  ! Tomizawa (1.7)
 	ie=int(ei/de)+1
 	if (ie > iemax) ie=iemax   ! denomination to eee_Max_Limit ?
 !
@@ -1063,7 +1062,7 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph)  ! Global kx, ky, kz
 			LT=LA
 			aed=-1.0d0
 			Epmax = eee + hbar*get_wq(QMAX,LT) 
-			kspmax = sqrt(2.*mdos*Epmax*(1.+af*Epmax))/hbar 
+			kspmax = sqrt(2.*mdos*Epmax*(1.+alpha*Epmax))/hbar 
 			qM = ki + kspmax
 		elseif (r1 <= swk(4,ie)) then   !  TA intra emission
 			LT=TA
@@ -1073,7 +1072,7 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph)  ! Global kx, ky, kz
 			LT=TA
 			aed=-1.0d0
 			Epmax = eee + hbar*get_wq(QMAX,LT)
-			kspmax = sqrt(2.*mdos*Epmax*(1.0+af*Epmax))/hbar
+			kspmax = sqrt(2.*mdos*Epmax*(1.0+alpha*Epmax))/hbar
 			qM = ki + kspmax
 		end if
 !
@@ -1191,19 +1190,19 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	Double Precision, intent(in)::DEph
 	integer ie
 !      
-	C = qM*get_Mq(qM,LT,aed)*(1.0+af2*(eee-aed*hbar*get_wq(qM,LT))) 
+	C = qM*get_Mq(qM,LT,aed)*(1.0+2.0*alpha*(eee-aed*hbar*get_wq(qM,LT))) 
 !
 	q0 = QMIN + (qM-QMIN)*grnd()
 	ephon = hbar*get_wq(q0,LT)
 	f0 = C*grnd()
-	fx = q0*get_Mq(q0,LT,aed)*(1.0+af2*(eee-aed*ephon))
+	fx = q0*get_Mq(q0,LT,aed)*(1.0+2.0*alpha*(eee-aed*ephon))
 	acost = fabs_cost(q0,ki,eee,LT,aed)
 	cnt=1									! debug
 	do while ((f0 > fx) .OR. (acost > 1.0d0))
 		q0 = QMIN + (qM-QMIN)*grnd()
 		ephon = hbar*get_wq(q0,LT)
 		f0 = C*grnd()
-		fx = q0*get_Mq(q0,LT,aed)*(1.0+af2*(eee-aed*ephon))
+		fx = q0*get_Mq(q0,LT,aed)*(1.0+2.0*alpha*(eee-aed*ephon))
 		acost = fabs_cost(q0,ki,eee,LT,aed)
 		cnt=cnt+1								! debug
 !		if (mod(cnt,10000)==0) then			! debug
@@ -1231,7 +1230,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !        
 !--- calculation of final state for LA/TA phonon emission/absorption (type=2-5)
 !   /********* non-parabolicity from tomizawa eq. 1.11 page 8 *********/
-	pprime = sqrt(2.0*amd*eee*(1.+af*eee)) !
+	pprime = sqrt(2.0*mdos*eee*(1.+alpha*eee)) !
 !                  this is the longitudinal axis momentum component
 !    			Pxyz = PX-1+(int)(iv[j]+1)/2;iv->Pxyz   ! 1,2->5;3,4->6;5,6->7
 !				/******** intra-valley acoustic, NON-ISOTROPIC final angle ********/
@@ -1259,7 +1258,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	end if
 	sbet = sqrt(1.-cbet*cbet)
 !		          /*** gam = angle b/w ki and Z-axis ***/
-	cgam = (hbar*kz-pvz(ivv))*sqrt(amd/mz(ivv))/(hbar*ki)
+	cgam = (hbar*kz-pvz(ivv))*sqrt(mdos/mz(ivv))/(hbar*ki)
 !			if (abs(cgam) > 1.) then
 	if (abs(cgam) > 1.0 .AND. abs(cgam) <= 1.03) then
 		write(*,*) '** WARNING 3  |cgam|>1;  cgam=',cgam	   !debug      
@@ -1274,9 +1273,9 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	end if
 	sgam = sqrt(1.-cgam*cgam)
 !			/*** gamp = angle b/w ki and Y-axis ***/
-	cgamp = (hbar*ky-pvy(ivv))*sqrt(amd/my(ivv))/(hbar*ki)
+	cgamp = (hbar*ky-pvy(ivv))*sqrt(mdos/my(ivv))/(hbar*ki)
 !			/*** gampp = angle b/w ki and X-axis ***/
-	cgampp = (hbar*kx-pvx(ivv))*sqrt(amd/mx(ivv))/(hbar*ki)
+	cgampp = (hbar*kx-pvx(ivv))*sqrt(mdos/mx(ivv))/(hbar*ki)
 !			/*** angle b/w ki projection on X-Y plane and Y-axis ***/
 	eta = atan((hbar*kx-pvx(ivv))*my(ivv)/   &
 		  &	 ((hbar*ky-pvy(ivv))*mx(ivv)))
@@ -1291,11 +1290,11 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !			/*** compute final state momentum components, like Jacoboni Rev. Mod.
 !			 1983, eq. 3.62-3.64, but he has X and Z components mixed up ***/
 	kz = ((cbet*cgam   +sbet*cphi*sgam)* &
-	   & sqrt(mz(ivv)/amd)*pprime + pvz(ivv))/hbar
+	   & sqrt(mz(ivv)/mdos)*pprime + pvz(ivv))/hbar
 	ky = ((cbet*cgamp  -sbet*cphi*cgam*ceta -sbet*sphi*seta)* &
-	   & sqrt(my(ivv)/amd)*pprime + pvy(ivv))/hbar
+	   & sqrt(my(ivv)/mdos)*pprime + pvy(ivv))/hbar
 	kx = ((cbet*cgampp -sbet*cphi*cgam*seta +sbet*sphi*ceta)* &
-	   & sqrt(mx(ivv)/amd)*pprime + pvx(ivv))/hbar
+	   & sqrt(mx(ivv)/mdos)*pprime + pvx(ivv))/hbar
 	cnt=1   !! debug
 	BZCLIP=1      ! debug
 !		end   once for while
@@ -1310,11 +1309,11 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !     		/*** compute final state momentum components, like Jacoboni Rev. Mod.
 !			1983, eq. 3.62-3.64, but he has X and Z components mixed up ***/
 		kz = ((cbet*cgam   +sbet*cphi*sgam)* &
-		   & sqrt(mz(ivv)/amd)*pprime + pvz(ivv))/hbar
+		   & sqrt(mz(ivv)/mdos)*pprime + pvz(ivv))/hbar
 		ky = ((cbet*cgamp  -sbet*cphi*cgam*ceta -sbet*sphi*seta)* &
-		   & sqrt(my(ivv)/amd)*pprime + pvy(ivv))/hbar
+		   & sqrt(my(ivv)/mdos)*pprime + pvy(ivv))/hbar
 		kx = ((cbet*cgampp -sbet*cphi*cgam*seta +sbet*sphi*ceta)* &
-		   & sqrt(mx(ivv)/amd)*pprime + pvx(ivv))/hbar
+		   & sqrt(mx(ivv)/mdos)*pprime + pvx(ivv))/hbar
 !      		/*** increment counter ***/
 		cnt = cnt + 1
 	end do    !  }<37> 
@@ -1331,9 +1330,9 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 		salp = sqrt(1.0-calp*calp)
 		bet = 2.0*pi*grnd()
 !			    /********** compute new isotropic momentum components *************/
-		kx = (pvx(ivv) + sqrt(mx(ivv)/amd)*pprime*salp*cos(bet))/hbar
-		ky = (pvy(ivv) + sqrt(my(ivv)/amd)*pprime*salp*sin(bet))/hbar
-		kz = (pvz(ivv) + sqrt(mz(ivv)/amd)*pprime*calp)/hbar
+		kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pprime*salp*cos(bet))/hbar
+		ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pprime*salp*sin(bet))/hbar
+		kz = (pvz(ivv) + sqrt(mz(ivv)/mdos)*pprime*calp)/hbar
 !       -- end      once for while
 		cnt=1
 !			do while ((fabs(Elec[Pxyz][j]) > PQMAX) && (BZCLIP))     ! <38>{
@@ -1342,9 +1341,9 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 			salp = sqrt(1.-calp*calp)
 			bet = 2.*pi*grnd()
 !			  /********** compute new isotropic momentum components *************/
-			kx = (pvx(ivv) + sqrt(mx(ivv)/amd)*pprime*salp*cos(bet))/hbar
-			ky = (pvy(ivv) + sqrt(my(ivv)/amd)*pprime*salp*sin(bet))/hbar
-			kz = (pvz(ivv) + sqrt(mz(ivv)/amd)*pprime*calp)/hbar
+			kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pprime*salp*cos(bet))/hbar
+			ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pprime*salp*sin(bet))/hbar
+			kz = (pvz(ivv) + sqrt(mz(ivv)/mdos)*pprime*calp)/hbar
 			cnt=cnt+1
 !				write(*,*) 'cnt3= ',cnt,' ivv3= ',ivv   ! debug
 !				write(8,*) 'cnt3= ',cnt,' ivv3= ',ivv   ! debug
@@ -1419,24 +1418,24 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !			#endif
 			BZCLIP=1   !!
 !				// compute new momentum in Herring-Vogt space
-			pp = sqrt(2.0*amd*Ep*(1.0+af*Ep))
+			pp = sqrt(2.0*mdos*Ep*(1.0+alpha*Ep))
 !				// choose the set of random angles
 			calp = 1.0-2.0*grnd()
 			salp = sqrt(1.0-calp*calp)
 			bet = 2.0*pi*grnd()
 !				// new momentum components in new valley iv[j]
-			kx = (pvx(ivv) + sqrt(mx(ivv)/amd)*pp*salp*cos(bet))/hbar
-			ky = (pvy(ivv) + sqrt(my(ivv)/amd)*pp*salp*sin(bet))/hbar
-			kz = (pvz(ivv) + sqrt(mz(ivv)/amd)*pp*calp)/hbar
+			kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pp*salp*cos(bet))/hbar
+			ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pp*salp*sin(bet))/hbar
+			kz = (pvz(ivv) + sqrt(mz(ivv)/mdos)*pp*calp)/hbar
 			do while ((MAX(abs(kx),abs(ky),abs(kz)) > PQMAX/hbar) .AND. (BZCLIP==1)) 
 !				// choose the set of random angles
 				calp = 1.0-2.0*grnd()
 				salp = sqrt(1.0-calp*calp)
 				bet = 2.0*pi*grnd()
 !				// new momentum components in new valley iv[j]
-				kx = (pvx(ivv) + sqrt(mx(ivv)/amd)*pp*salp*cos(bet))/hbar
-				ky = (pvy(ivv) + sqrt(my(ivv)/amd)*pp*salp*sin(bet))/hbar
-				kz = (pvz(ivv) + sqrt(mz(ivv)/amd)*pp*calp)/hbar
+				kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pp*salp*cos(bet))/hbar
+				ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pp*salp*sin(bet))/hbar
+				kz = (pvz(ivv) + sqrt(mz(ivv)/mdos)*pp*calp)/hbar
 			end do
 !	  	  
 !				#ifdef POP
@@ -1599,24 +1598,24 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !			#endif
       		BZCLIP=1   !!
 !	  			// compute new momentum in Herring-Vogt space
-			pp = sqrt(2.*mdos*Ep*(1.+af*Ep))
+			pp = sqrt(2.*mdos*Ep*(1.+alpha*Ep))
 !				// choose the set of random angles
 			calp = 1.0-2.0*grnd()
 			salp = sqrt(1.0-calp*calp)
 			bet = 2.0*pi*grnd()
 !				// new momentum components in new valley iv[j]
-			kx = (pvx(ivv) + sqrt(mx(ivv)/amd)*pp*salp*cos(bet))/hbar
-			ky = (pvy(ivv) + sqrt(my(ivv)/amd)*pp*salp*sin(bet))/hbar
-			kz = (pvz(ivv) + sqrt(mz(ivv)/amd)*pp*calp)/hbar
+			kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pp*salp*cos(bet))/hbar
+			ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pp*salp*sin(bet))/hbar
+			kz = (pvz(ivv) + sqrt(mz(ivv)/mdos)*pp*calp)/hbar
 			do while ((MAX(abs(kx),abs(ky),abs(kz)) > PQMAX/hbar) .AND. (BZCLIP==1))
 !				// choose the set of random angles
 				calp = 1.0-2.0*grnd()
 				salp = sqrt(1.0-calp*calp)
 				bet = 2.0*pi*grnd()
 !				// new momentum components in new valley iv[j]
-				kx = (pvx(ivv) + sqrt(mx(ivv)/amd)*pp*salp*cos(bet))/hbar
-				ky = (pvy(ivv) + sqrt(my(ivv)/amd)*pp*salp*sin(bet))/hbar
-				kz = (pvz(ivv) + sqrt(mz(ivv)/amd)*pp*calp)/hbar
+				kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pp*salp*cos(bet))/hbar
+				ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pp*salp*sin(bet))/hbar
+				kz = (pvz(ivv) + sqrt(mz(ivv)/mdos)*pp*calp)/hbar
 			end do
 !
 !				#ifdef POP
@@ -1749,7 +1748,7 @@ subroutine out(t,Elec,iv)
 			kk = (kx/tm(2))**2+(ky/tm(3))**2+(kz/tm(1))**2  ! debug
 		end if
 !
-		ve = ve + kx*hm((ivv-1)/2+1)/sqrt(1.0+af4*gk) 
+		ve = ve + kx*hm((ivv-1)/2+1)/sqrt(1.0+4.0*alpha*gk) 
 !			eee = eee+kk                              ! debug
 		eee = eee + Elec(n,EE)
 		s  = s + Elec(n,XXX)
