@@ -159,6 +159,7 @@ module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 !     ml = 0.9163*m0;               // 5.2097e-16 eV*s^2/cm^2
 !     mt = 0.1880*m0*1.1756/Egap;   // 1.1220e-16 eV*s^2/cm^2
 !				#define m0     5.68562975e-16      // eV*s^2/cm^2
+!
 	integer,parameter:: LA=1
 	integer,parameter:: TA=2
     integer,parameter:: LO=3
@@ -185,10 +186,7 @@ module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 !				// Universal Constants from http://physics.nist.gov/cuu/Constants
 !				#define pi   3.14159265
 !				#define pi2  6.28318531
-!				#define echarge   -1.0             // electron charge 
-!				#define ecoulom   -1.60217653e-19  // electron charge in Coulombs 
-!				#define kb     8.61734318e-05      // eV/K 
-!				#define hbar   6.58211915e-16      // eV*s 
+
 
 !				#define eps0   5.52634972e+05      // e/V/cm permittivity of free space
 !				// material constants for silicon
@@ -198,18 +196,19 @@ module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 !
 !		from Tom_global_variables   !----- 共通変数 -----
 	Double Precision dt,Temp,fx
-	Double Precision hwo,de
+!!	Double Precision hwo,de
+	Double Precision de
 !	Double Precision :: swk(17,2400)=0.0d0
 !	Double Precision :: swk(17,4000)=0.0d0
 	Double Precision :: swk(17,3000)=0.0d0
 	Double Precision mdos      
 	Double Precision gm                 
 	Double Precision smh,hhml,hhmt         
-	Double Precision alpha		!,alpha2	!,alpha4          
+	Double Precision alpha
 	Double Precision tm(3)                
 	Double Precision hm(3)                
-	Double Precision qh                   
-	Double Precision bktq                  
+	Double Precision qhbar                   
+	Double Precision kbTq                  
 	Double Precision ef
 	integer inum,jtl
 	integer iemax
@@ -493,18 +492,17 @@ end subroutine data_input
 subroutine param
 	implicit none      
 	Double Precision ml, mt, eps, Egap			!, eg		!! eg to be removed
-	Double Precision rou, sv, cl, z2, da, dof, dog, bkt
-!!      Double Precision amd, amc
 	Double Precision amc      
-	Double Precision wo, no, dos, aco, ofe, ofa, oge, oga
 	Double Precision ei, sei, sef, eff
 	Double Precision eee
 	integer ie, i
 !
 	Double Precision,parameter::pi = 3.14159265        !π
 !
-	Double Precision,parameter::bk = 8.61734318e-05     ! eV/K
 	Double Precision,parameter::q = 1.0d0               ! e
+	Double Precision,parameter::echarge = 1.0		!  // electron charge 
+!				#define echarge   -1.0             // electron charge 
+!				#define ecoulom   -1.60217653e-19  // electron charge in Coulombs
 	Double Precision,parameter::hbar  = 6.58211915e-16  ! eV*s 
 	Double Precision,parameter::ep0 = 5.52634972e+05    ! e/V/cm    !真空誘電率
 	Double Precision,parameter::m0 = 5.68562975e-16    ! eV*s^2/cm^2  !electron mass
@@ -531,35 +529,13 @@ subroutine param
 	Egap = 1.1756 - 8.8131e-05*Temp - 2.6814e-07*Temp*Temp
 	write(*,*) 'Egap_Pop=',Egap					! debug
 	write(8,*) 'Egap_Pop=',Egap					! debug
-!	aml  = 0.916*m0 ! 縦有効質量
-!	amt  = 0.196*m0 ! 横有効質量
-     ml = 0.9163*m0					!// 5.2097e-16 eV*s^2/cm^2
-     mt = 0.1880*m0*1.1756/Egap		!// 1.1220e-16 eV*s^2/cm^2
-!	eg   = 1.12      ! 禁制帯幅[eV]			! to be removed
+	ml = 0.9163*m0					!// 5.2097e-16 eV*s^2/cm^2
+	mt = 0.1880*m0*1.1756/Egap		!// 1.1220e-16 eV*s^2/cm^2
 	eps  = 11.7*ep0  ! Si誘電率
 !
 !---( フォノン散乱の諸パラメータ )---
-!
-!!      rou  = 2329.0 !Si比重
-!!      sv   = 9040.0 !Si中の音速
-	rou  = 1.4516e+12       ! density (eV*s^2/cm^5) (2.329 g/cm^3) !Si比重
-!     PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
-!!      sv   = 9040.0 !Si中の音速
-!! 不要？      1.1e+05     // cm/s, optical phonon velocity
-!!      cl   = rou*sv*sv    ! 弾性定数
-!!  sv cl  不要？
-	z2   = 2.0        ! X谷の個数
-!!      da   = 9.0*q    ! 谷内音響フォノンの変位ポテンシャル [eV] after TXT A.1.2
-!!      dof   =4.0e10*q ! 谷間f光学フォノンの変位ポテンシャル[eV/m] after TXT A.1.2
-!       dog  = 6.0e10*q ! 谷間g光学フォノンの変位ポテンシャル[eV/m] after TXT A.1.2
-!!      da   = 9.0        ! eV unit 
-	dof   =4.0e8      ! eV/cm unit
-	dog  = 1.1e9      ! eV/cm unit
-	hwo  = 0.06       ! 谷間fg光学フォノンエネルギー[eV]
-!
-	bkt  = bk*Temp
-	bktq = bkt/q
-	qh   = q/hbar     ! h->hbar
+	kbTq = kb*Temp/echarge
+	qhbar   = echarge/hbar     ! h->hbar
 !
 !---( バンドの非等方性 )---
 !
@@ -568,34 +544,18 @@ subroutine param
 	tm(1)=sqrt(ml/mdos) !縦 1.67
 	tm(2)=sqrt(mt/mdos) !横 0.773
 	tm(3)=sqrt(mt/mdos) !横 0.773
-	smh  = sqrt(2.*mdos*q)/hbar    ! h->hbar
-	hhml = hbar/ml/q*hbar/2.0 !縦 ! h->hbar
-	hhmt = hbar/mt/q*hbar/2.0 !横 ! h->hbar
+	smh  = sqrt(2.*mdos*echarge)/hbar    ! h->hbar
+	hhml = hbar/ml/echarge*hbar/2.0 !縦 ! h->hbar
+	hhmt = hbar/mt/echarge*hbar/2.0 !横 ! h->hbar
 	hm(1)= hbar/ml !縦 ! h->hbar
 	hm(2)= hbar/mt !横 ! h->hbar
 	hm(3)= hbar/mt !横 ! h->hbar
 !
 !---( バンドの非放物線性 )---
 !
-!!	alpha   = (1.0-amc/m0)**2/eg !α~0.5			! to be removed
-!!	write(*,*) 'alpha_Tom=',alpha				! debug
-!!	write(8,*) 'alpha_Tom=',alpha				! debug
 	alpha = 0.5*1.1250281/Egap;
 	write(*,*) 'alpha_Pop=',alpha				! debug
 	write(8,*) 'alpha_Pop=',alpha				! debug
-!
-!
-	wo     = hwo*q/hbar ! O-phonon angular frequency [J -> rad/s]  h -> hbar ?
-	no     = 1.0/(exp(hwo/bktq)-1.0) !probability
-!
-	dos    = (2.0*mdos*q)**(3.0/2.0)/(4.0*pi**2*hbar**3) !DOS-factor  h->hbar
-!!      aco    = 2.0*pi*da/q*da*bktq/h*q/cl !音響フォノン
-	ofe    = pi*dof/wo*dof/rou/q*(no+1.0) !光学f生成
-	ofa    = ofe*no/(1.0+no) !光学f消滅
-	oge    = pi*dog/wo*dog/rou/q*(no+1.0) !光学g生成
-	oga    = oge*no/(1.0+no) !光学g消滅
-!!      write (*,*) wo,no,hwo,bktq,dos,ofe,ofa,oge,oga   ! debug
-!!      write (8,*) wo,no,hwo,bktq,dos,ofe,ofa,oge,oga   ! debug
 !
 !---( valley offset values )---
 !
@@ -643,38 +603,12 @@ subroutine param
 !						write(8,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
 !
 	de=0.0005   ! energy step  ! Tom(2meV)->Pop(0.5meV)
-!	iemax=2400  !  Tom(0-2eV;1000div)->Pop(0-1.2eV;2400div)
-!	iemax=4000
-	iemax=3000
+	iemax=3000	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3000div)
 !
 	do ie=1,iemax
 		ei=de*float(ie) ! initial energy
 		sei=sqrt(ei)
 !-----( 非有極性光学フォノン散乱 )--- scattering type 1->6; 2->7; 3->8; 4->9; 5->5
-!!!        eff=ei-hwo ! phonon emission
-!!!        if (eff > 0.0) then
-!!!           sef=sqrt(eff*(1.0+alpha*eff))
-!!!           swk(6,ie) = oge*sef*dos*(1.0+2.0*alpha*eff) !光学g emission
-!!!        else
-!!!            swk(6,ie) = 0.
-!!!        end if
-!
-!!!        eff=ei+hwo ! phonon absorption
-!!!        sef=sqrt(eff*(1.0+alpha*eff))
-!!!        swk(7,ie) = oga*sef*dos*(1.0+2.0*alpha*eff) !光学g absorption
-!
-!!!        eff=ei-hwo
-!!!        if (eff > 0.0) then
-!!!           sef=sqrt(eff*(1.0+alpha*eff))
-!!!           swk(8,ie) = 2.0*z2*ofe*sef*dos*(1.0+2.0*alpha*eff)!光学f ems
-!!!        else
-!           swk(3,ie)=swk(2,ie)
-!!!           swk(8,ie)=0.
-!!!        end if
-!
-!!!        eff=ei+hwo
-!!!           sef=sqrt(eff*(1.+alpha*eff))
-!!!           swk(9,ie) = 2.0*z2*ofa*sef*dos*(1.0+2.0*alpha*eff) !光学f abs
 !=====[ 光学フォノン散乱 Pop }===== scattering type 6 - 9
 ! 			 // the value of the overlap integral for inter-valley scattering may
 !  			 // be included in the coupling constants (Jacoboni 1983, p. 672)
@@ -794,13 +728,13 @@ subroutine initia(t,Elec,iv)
 	do  n=1,inum
 !--------------------------------------------- begin isotropic Maxwell-Boltzman(Pop)
 		if (MBdist == 1) then
-			kx = smh*sqrt(bktq/2.0)*gasdev()    ! Local kx
-			ky = smh*sqrt(bktq/2.0)*gasdev()    ! Local ky
-			kz = smh*sqrt(bktq/2.0)*gasdev()    ! Local kz
+			kx = smh*sqrt(kbTq/2.0)*gasdev()    ! Local kx
+			ky = smh*sqrt(kbTq/2.0)*gasdev()    ! Local ky
+			kz = smh*sqrt(kbTq/2.0)*gasdev()    ! Local kz
 !--------------------------------------------- begin isotropic initial p (Tom)
 		else
 			rn = grnd()
-			ei  = -bktq*log(rn)*1.5d0    !--- give E along exp{-E/(3/2kT)} ~39meV @300K
+			ei  = -kbTq*log(rn)*1.5d0    !--- give E along exp{-E/(3/2kT)} ~39meV @300K
 			ak  = smh*sqrt(ei*(1.0+alpha*ei)) !--- E -> k
 			rn = grnd()
 			cb  = 1.0-2.0*rn ! cosθ
@@ -984,7 +918,7 @@ subroutine drift(tau,kx,ky,kz,eee,x,y,ivv)  ! Global kx, ky, kz
 	integer, intent(in):: ivv
 	Double Precision dkx, skx, sky, skz, cp, sq, gk
 !
-	dkx=qh*fx*tau ! dk=q/h・F・τ
+	dkx=qhbar*fx*tau ! dk=q/h・F・τ
 !
 	cp  = hm((ivv-1)/2+1)*tau               ! m/h・τ
 
