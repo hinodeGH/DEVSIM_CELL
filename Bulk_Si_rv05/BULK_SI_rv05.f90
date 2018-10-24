@@ -509,7 +509,8 @@ subroutine param
 	Double Precision amc      
 	Double Precision ei
 	Double Precision eee
-	Double Precision,parameter::EMIN = 1E-10
+	Double Precision,parameter::EMIN = 1.0D-10	! 1.0D-10
+	Double Precision,parameter::EMAX = 1.5D0
 	integer ie, i
 !
 	Double Precision,parameter::pi = 3.14159265        !ƒÎ
@@ -618,7 +619,7 @@ subroutine param
 !						write(8,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
 !
 	de=0.0005   ! energy step  ! Tom(2meV)->Pop(0.5meV)
-	iemax=3000+1	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3001div)
+	iemax=int(EMAX/de)+1	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3001div)
 !
 	do ie=1,iemax
 !				ei=de*float(ie) ! energy table: de ~ de*iemax
@@ -1125,7 +1126,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 		fx = q0*get_Mq(q0,LT,aed)*(1.0+2.0*alpha*(eee-aed*ephon))
 		acost = fabs_cost(q0,ki,eee,LT,aed)
 		cnt=cnt+1								! debug
-		if (mod(cnt,10000)==0) then			! debug
+		if (mod(cnt,100000)==0) then			! debug
 			write(*,*) 'cnt=',cnt,'eee=',eee,' acost=',acost    ! debug
 			write(8,*) 'cnt=',cnt,'eee=',eee,' acost=',acost    ! debug
 		end if
