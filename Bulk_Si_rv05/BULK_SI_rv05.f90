@@ -399,6 +399,7 @@ Double Precision function acrate3(E, lt, aed)
 			write(*,*) 'at E=',E,'  Reduce EMAX!'
 			write(*,*) ' or continue at your own risk (continuing works, sort of)'
 !						exit(0)
+			Return			! 2018.10.24
 		end if
 		nloc = MULT*int((q2-q1)/dq)
 		dq = (q2-q1)/ real(nloc-1)
@@ -420,7 +421,7 @@ Double Precision function acrate3(E, lt, aed)
 !
 		C3 = DP*DP*mdos/(4.*pi*rho*hbar*hbar*k) 
 		G = C3*trapz(q,integ,1,nloc) 
-      end if                               ! ‡E end
+	end if                               ! ‡E end
 !  
 	deallocate(q)
 	deallocate(integ)
@@ -513,7 +514,7 @@ subroutine param
 	Double Precision,parameter::EMAX = 1.5D0
 	integer ie, i
 !
-	Double Precision,parameter::pi = 3.14159265        !ƒÎ
+!!	Double Precision,parameter::pi = 3.14159265        !ƒÎ
 !
 	Double Precision,parameter::q = 1.0d0               ! e
 	Double Precision,parameter::echarge = 1.0		!  // electron charge 
@@ -729,7 +730,7 @@ end subroutine param
 !
 subroutine initia(t,Elec,iv)
 	implicit none
-	Double Precision,parameter::pi = 3.14159        !ƒÎ
+!!	Double Precision,parameter::pi = 3.14159        !ƒÎ
 !      
 	Double Precision, intent(out)::t
 	Double Precision, intent(out)::Elec(:,:)
