@@ -40,7 +40,7 @@
 ! 2018.08.16 rnd() -> system random number:call random_number()
 ! 2018.08.23 rv04  -> Mersenne random number: call grnd()
 ! 2018.08.25 range mt19937 -> mt19937rv0a:[0 1)  -> (0 1]  for log(grnd)
-! 2018.10.25 add function Ran1
+! 2018.10.25 add/install function Ran1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
 module random_number
 !
@@ -180,8 +180,10 @@ Double Precision Function Ran1(idum)
 	end if
 	k=idum/IQ								!	Start here when not initializing.
 	idum=IA*(idum-k*IQ)-IR*k				!	Compute idum=mod(IA*idum,IM) without overflows by Schrange's method.
-	if (idum .LT. 0) idum=idum*IM
-	j=1+iy/NDIV								!	Will be in the range 1:NTAB.
+!	if (idum .LT. 0) idum=idum*IM
+	if (idum .LT. 0) idum=idum+IM	
+!	j=1+iy/NDIV
+	j=iy/NDIV								!	Will be in the range 1:NTAB.
 	iy=iv(j)								!	Output previously stored value and refill the shuffle table.
 	iv(j)=idum
 	Ran1=min(AM*iy,RNMX)					!	Because users don't expect endpoint values.
@@ -198,6 +200,7 @@ module Tom2Pop_sub_program_variables    !----- ã§í ïœêî -----
 	Double Precision,parameter::EMAX = 1.5D0	! 1.5eV <2eV
 	Double Precision,parameter::QMIN = 1.0              ! // nearly zero compared to QMAX
 	Double Precision,parameter::QMAX = 1.1569113068e+08 !  2*pi/asi
+!!	Double Precision,parameter::QMAX = 1.15691130546861e+08		!	just Pop_C value
 !    Double Precision,parameter::asi = 5.431e-08         ! // lattice constant, cm
 	Double Precision,parameter::Rws = 2.1224e-8         !  asi*pow(3./(16.*pi), 1./3.)
 !	Double Precision,parameter::alpha = 0.481575201309447
@@ -225,7 +228,8 @@ module Tom2Pop_sub_program_variables    !----- ã§í ïœêî -----
     Double Precision,parameter::EMS = 1.0
 !			  // f- and g-phonon norm, to be multiplied by QMAX
     Double Precision, parameter:: QGp = 0.3           ! @ Pop-default
-    Double Precision, parameter:: QFp = 1.022252415 ! sqrt(1. + 2.*0.15*0.15)
+!	Double Precision, parameter:: QFp = 1.022252415 ! sqrt(1. + 2.*0.15*0.15)
+	Double Precision, parameter:: QFp = 1.022252	!	just Pop_C value
     Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
     
 	Double Precision,parameter::LTAO(4,3) = &
@@ -254,7 +258,7 @@ module Tom2Pop_sub_program_variables    !----- ã§í ïœêî -----
 !		from Tom_global_variables   !----- ã§í ïœêî -----
 	Double Precision dt,Temp,fx
 	Double Precision de
-	Double Precision :: swk(17,3001)=0.0d0
+	Double Precision :: swk(17,3002)=0.0d0
 	Double Precision mdos      
 	Double Precision gm                 
 	Double Precision smh,hhml,hhmt         
@@ -270,6 +274,8 @@ module Tom2Pop_sub_program_variables    !----- ã§í ïœêî -----
 	integer, parameter::EElost=10
 	Double Precision pvx(6), pvy(6), pvz(6)  ! 6 valley p offset
 	Double Precision mx(6), my(6), mz(6)     ! mx,my,mz at 6 valleys
+!
+	integer ran1_idum						!	dummy variable for function ran1
 !
 end module Tom2Pop_sub_program_variables
 !****************************************************************************************
@@ -313,10 +319,8 @@ Double Precision function get_wq(q, lt) ! -- ( phonon frequency ) --
 	qTemp=q
 !	
 	if (qTemp > QMAX) then
-		if (LTtemp == LA) then
-			LTtemp = LO                !  LA outside BZ extends into LO
-			qTemp = 2.*QMAX - qTemp       ! and flip it back to first BZ
-		end if
+		if (LTtemp == LA) LTtemp = LO			!	LA outside BZ extends into LO
+		qTemp = 2.*QMAX - qTemp					!	and flip it back to first BZ
 	else if (qTemp < 0.) then
 		qTemp = -qTemp
 	end if
@@ -659,20 +663,20 @@ subroutine param
 !
 !					 // Fphon = 2-norm([1 .15 .15]) in constants.h
 	ETAf = hbar*get_wq(QFp*QMAX,TA)     ! // ~ 18 meV
-	ETAf = 0.01862919
+!!	ETAf = 0.01862919
 !					 // this one is actually on the LO branch here b/c Fphon > 1
 	ELAf = hbar*get_wq(QFp*QMAX,LA)     ! // ~ 52 meV
 !					  // see how get_wq() is implemented for LA when q > QMAX
 	ETOf = hbar*get_wq(QFp*QMAX,TO)     ! // ~ 58 meV
-	ETOf = 0.05747027  ! debug
+!!	ETOf = 0.05747027  ! debug
 	ETAg = hbar*get_wq(QGp*QMAX,TA)     ! // ~ 10 meV
 	ELAg = hbar*get_wq(QGp*QMAX,LA)     ! // ~ 19 meV
 	ELOg = hbar*get_wq(QGp*QMAX,LO)     ! // ~ 64 meV
-!	write(*,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
-!	write(8,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
+	write(*,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
+	write(8,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
 !
-	de=0.0005   ! energy step  ! Tom(2meV)->Pop(0.5meV)
-	iemax=int(EMAX/de)+1	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3001div)
+	de=0.0005D0   ! energy step  ! Tom(2meV)->Pop(0.5meV)
+	iemax=nint(EMAX/de)+2	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3002div)
 !
 	do ie=1,iemax
 !				ei=de*float(ie) ! energy table: de ~ de*iemax
@@ -809,6 +813,8 @@ subroutine initia(t,Elec,iv)
 	t=0.d0
 	call sgrnd(1)                    !óêêî seed=1
 	MBdist=1
+!!	MBdist=0
+	ran1_idum=-99
 	do  n=1,inum
 !--------------------------------------------- begin isotropic Maxwell-Boltzman(Pop)
 		if (MBdist == 1) then
@@ -818,6 +824,8 @@ subroutine initia(t,Elec,iv)
 !--------------------------------------------- begin isotropic initial p (Tom)
 		else
 			rn = grnd()
+!!					write(*,*)ran1_idum,rn		!!	debud
+!!					write(8,*)ran1_idum,rn		!!	debud
 			ei  = -kbTq*log(rn)*1.5d0    !--- give E along exp{-E/(3/2kT)} ~39meV @300K
 			ak  = smh*sqrt(ei*(1.0+alpha*ei)) !--- E -> k
 			rn = grnd()
