@@ -33,11 +33,14 @@
 !                 ee->eee,ts->tss,p(i,:) -> Elec(i,PX..);PX=5,PY=6,PZ=7,TS=9,XXX=1,YYY=2
 !                 iv->ivv,ip(i)->iv(i); tentatively iv=1(+)&2(-)<-ip=1,iv=3(+)&4(-)<-ip=2,iv=5(+)&6(-)<-ip=3
 !      2018.10.15
-!					All Tom scattering processes were replaced by Pop processes (#1-17 except ion scat) 
+!					All Tom scattering processes were replaced by Pop processes (#1-17 except ion scat)
+!	   2018.10.24
+!					Elec(i,EElost=10)
 !===( 乱数発生関数 )=== 
 ! 2018.08.16 rnd() -> system random number:call random_number()
 ! 2018.08.23 rv04  -> Mersenne random number: call grnd()
 ! 2018.08.25 range mt19937 -> mt19937rv0a:[0 1)  -> (0 1]  for log(grnd)
+! 2018.10.25 add function Ran1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
 module random_number
 !
@@ -148,13 +151,51 @@ Double Precision function gasdev() !gaussian random number:Box Muller's method
 		gasdev = gset
 	end if
 end function gasdev
+!========================================================================================
+Double Precision Function Ran1(idum)
+											!	Numerical Recipes in Fortran 2nd Ed. p.271
+	integer idum,IA,IM,IQ,IR,NTAB,NDIV
+	Double Precision AM,EPS,RNMX
+!	Parameter(IA=16807,IM=2147483647,AM=1./IM,IQ=127773,IR=2836,NTAB=32,NDIV=1+(IM-1)/NTAB,EPS=1.2e-7,RNMX=1.-EPS)
+	Parameter(IA=16807,IM=2147483647,AM=1./IM,IQ=127773,IR=2836,NTAB=32,NDIV=1+(IM-1)/NTAB,EPS=3.0e-16,RNMX=1.-EPS)
+!
+!	Minimal random number generator of Park and Miller with Bays-Durham shuffle and added safegurds.
+!	Returns a uniform random deviate between 0.0 and 1.0 (exclusive of the endpoint values).
+!	Call with idum a negetive integer to initialize; thereafter, do not alter idum between successive deviates in a sequence.
+!	RNMX should approximate the largest floating value that is less than 1.
+!
+	integer j,k,iv(NTAB),iy
+	SAVE iv, iy
+	DATA iv /NTAB*0/, iy /0/
+!
+	if (idum.LE.0. .OR. iy.EQ.0) then 		!	initialize.
+		idum=max(-idum,1)					!	Be sure to prevent idum=0
+		do j=NTAB+8, 1, -1					!	Load the shuffle table (after 8 warm-ups)
+			k=idum/IQ
+			idum=IA*(idum-k*IQ)-IR*k
+			if (idum .LT. 0) idum=idum+IM
+			if (j .LE. NTAB) iv(j)=idum
+		end do
+		iy=iv(1)
+	end if
+	k=idum/IQ								!	Start here when not initializing.
+	idum=IA*(idum-k*IQ)-IR*k				!	Compute idum=mod(IA*idum,IM) without overflows by Schrange's method.
+	if (idum .LT. 0) idum=idum*IM
+	j=1+iy/NDIV								!	Will be in the range 1:NTAB.
+	iy=iv(j)								!	Output previously stored value and refill the shuffle table.
+	iv(j)=idum
+	Ran1=min(AM*iy,RNMX)					!	Because users don't expect endpoint values.
+	return
+END Function Ran1
+!========================================================================================
 !
 end module random_number
-!========================================================================================
 !****************************************************************************************
 module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 !		from Pop_sub_program_variables
 	implicit none
+	Double Precision,parameter::EMIN = 0.0D-10	! 1.0D-10 << 0.0005(=de)
+	Double Precision,parameter::EMAX = 1.5D0	! 1.5eV <2eV
 	Double Precision,parameter::QMIN = 1.0              ! // nearly zero compared to QMAX
 	Double Precision,parameter::QMAX = 1.1569113068e+08 !  2*pi/asi
 !    Double Precision,parameter::asi = 5.431e-08         ! // lattice constant, cm
@@ -187,10 +228,18 @@ module Tom2Pop_sub_program_variables    !----- 共通変数 -----
     Double Precision, parameter:: QFp = 1.022252415 ! sqrt(1. + 2.*0.15*0.15)
     Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
     
-    Double Precision,parameter::LTAO(4,3) = &
-                         &  reshape( (/-0.196e-2, -0.250e-2, -0.156e-2,     0.137e-2, &
-                         &              9.00e5,    5.33e5,    0.0000,      -2.91e5,   &
-                         &              0.0,       0.0,       9.87682e13,   1.027e14 /),(/4,3/) )
+	Double Precision,parameter::LTAO(4,3) = &
+						&  reshape( (/-0.196e-2, -0.250e-2, -0.156e-2,     0.137e-2, &
+						&              9.00e5,    5.33e5,    0.0000,      -2.91e5,   &
+						&              0.0,       0.0,       9.87682e13,   1.027e14 /),(/4,3/) )
+!	Double Precision,parameter::LTAO(4,3) = &
+!						&  reshape( (/-0.200e-2, -0.260e-2, -0.160e-2,     0.111e-2, &
+!						&              9.01e5,    5.23e5,    0.0000,      -2.57e5,   &
+!						&              0.0,       0.0,       9.88e13,   1.02e14 /),(/4,3/) )
+!	Double Precision,parameter::LTAO(4,3) = &
+!						&  reshape( (/ 0.0,       0.0, 		-0.156e-2,     0.137e-2, &
+!						&              9.00e5,    5.33e5,    0.0000,      -2.91e5,   &
+!						&              0.0,       0.0,       9.87682e13,   1.027e14 /),(/4,3/) )
 !				// Universal Constants from http://physics.nist.gov/cuu/Constants
 !				#define pi   3.14159265
 !				#define pi2  6.28318531
@@ -358,8 +407,8 @@ Double Precision function acrate3(E, lt, aed)
 	Double Precision q1, q2, dq, k, acost, C3, G, DP
 	integer i, i1, i2, nloc, N, MULT
 !                        /******  ******/
-	N=200              !  100
-	MULT=20            !  10
+	N=200              ! 200 100
+	MULT=20            ! 20  10
 !      
 	allocate(q(MULT*N))
 	allocate(integ(MULT*N))
@@ -510,8 +559,8 @@ subroutine param
 	Double Precision amc      
 	Double Precision ei
 	Double Precision eee
-	Double Precision,parameter::EMIN = 1.0D-10	! 1.0D-10
-	Double Precision,parameter::EMAX = 1.5D0
+!!	Double Precision,parameter::EMIN = 1.0D-10	! 1.0D-10 << 0.0005(=de)
+!!	Double Precision,parameter::EMAX = 1.5D0
 	integer ie, i
 !
 !!	Double Precision,parameter::pi = 3.14159265        !π
@@ -610,21 +659,29 @@ subroutine param
 !
 !					 // Fphon = 2-norm([1 .15 .15]) in constants.h
 	ETAf = hbar*get_wq(QFp*QMAX,TA)     ! // ~ 18 meV
+	ETAf = 0.01862919
 !					 // this one is actually on the LO branch here b/c Fphon > 1
 	ELAf = hbar*get_wq(QFp*QMAX,LA)     ! // ~ 52 meV
 !					  // see how get_wq() is implemented for LA when q > QMAX
 	ETOf = hbar*get_wq(QFp*QMAX,TO)     ! // ~ 58 meV
+	ETOf = 0.05747027  ! debug
 	ETAg = hbar*get_wq(QGp*QMAX,TA)     ! // ~ 10 meV
 	ELAg = hbar*get_wq(QGp*QMAX,LA)     ! // ~ 19 meV
 	ELOg = hbar*get_wq(QGp*QMAX,LO)     ! // ~ 64 meV
-!						write(8,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
+!	write(*,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
+!	write(8,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
 !
 	de=0.0005   ! energy step  ! Tom(2meV)->Pop(0.5meV)
 	iemax=int(EMAX/de)+1	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3001div)
 !
 	do ie=1,iemax
 !				ei=de*float(ie) ! energy table: de ~ de*iemax
-		ei=de*float(ie-1)+EMIN ! energy table: EMIN=1E-10(~0) ~ de*(iemax-1)
+		if (ie == 1) then
+			ei = EMIN
+		else
+			ei=de*float(ie-1) ! energy table: EMIN=1E-10(~0) ~ de*(iemax-1)
+		end if
+		
 !-----( 非有極性光学フォノン散乱 )--- scattering type 1->6; 2->7; 3->8; 4->9; 5->5
 !=====[ 光学フォノン散乱 Pop }===== scattering type 6 - 9
 ! 			 // the value of the overlap integral for inter-valley scattering may
@@ -684,14 +741,19 @@ subroutine param
         end do
 !        
 !!----- debug scattering rate begin ------
-!	do  ie=1,iemax
+	do  ie=1,iemax
+		if (ie == 1) then
+			eee = EMIN
+		else
+			eee = de*float(ie-1)
+		end if
 !!			eee=de*float(ie)
-!		eee=de*float(ie-1)+EMIN
-!		write (*,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
-!				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
-!		write (8,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
-!				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
-!	end do
+!!		eee=de*float(ie-1)+EMIN
+		write (*,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
+		write (8,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
+	end do
 !!------ debug scattering rate end -------
 !
 !---( 散乱レートの和の計算 )---
@@ -716,7 +778,11 @@ subroutine param
 	write (*,*) 'total scattering rate=',gm
 	 write (8,*) 'total scattering rate=',gm
 !!      do  ie=1,iemax
-!!        eee=de*float(ie-1)+EMIN
+!!        if (ie == 1) then
+!!				eee = EMIN
+!!			else
+!!				eee = de*float(ie-1)
+!!			end if
 !!         write (*,*) eee,swk(1,ie),swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
 !!                    &     swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
 !!         write (8,*) eee,swk(1,ie),swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
@@ -938,28 +1004,30 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 	integer ,intent(in)::NBph
 	Double Precision, intent(in)::DEph
 	Double Precision padjust, Elost
-	Double Precision, Parameter :: eee_Min_Limit=1.0e-10 	! 0.4->0.1meV avoid infinit loop at do while
-!	Double Precision, Parameter :: eee_Max_Limit=2.0 		! 2eV avoid infinit loop at do while
-	Double Precision, Parameter :: eee_Max_Limit=1.5
+!!	Double Precision, Parameter :: eee_Min_Limit=1.0e-10 	! 0.4->0.1meV avoid infinit loop at do while
+!!	Double Precision, Parameter :: EMAX=2.0 		! 2eV avoid infinit loop at do while
+!!	Double Precision, Parameter :: EMAX=1.5
 !
 !---( 散乱前のエネルギーの計算 )---
 !
 		Elost = 0.0
-		if (eee < eee_Min_Limit) then	   				! ? kjh avoid infinite loop at do while in scat
-			padjust = sqrt((eee_Min_Limit*(1.+alpha*eee_Min_Limit))/(eee*(1.+alpha*eee)))
+!
+!		if (eee < EMIN) then	!
+!			padjust = sqrt((EMIN*(1.+alpha*EMIN))/(eee*(1.+alpha*eee)))
+!			kx = pvx(ivv)/hbar + (kx - pvx(ivv)/hbar)*padjust
+!			ky = pvy(ivv)/hbar + (ky - pvy(ivv)/hbar)*padjust
+!			kz = pvz(ivv)/hbar + (kz - pvz(ivv)/hbar)*padjust
+!			Elost = Elost + (eee - EMIN)     !				   // add up "gotton" energy
+!			eee=EMIN   
+!		end if
+!
+		if (eee > EMAX) then	!
+			padjust = sqrt((EMAX*(1.+alpha*EMAX))/(eee*(1.+alpha*eee)))
 			kx = pvx(ivv)/hbar + (kx - pvx(ivv)/hbar)*padjust
 			ky = pvy(ivv)/hbar + (ky - pvy(ivv)/hbar)*padjust
 			kz = pvz(ivv)/hbar + (kz - pvz(ivv)/hbar)*padjust
-			Elost = Elost + (eee - eee_Min_Limit)     !				   // add up "got" energy
-			eee=eee_Min_Limit   
-		end if
-		if (eee > eee_Max_Limit) then   				! ? kjh avoid infinite loop at do while in scat
-			padjust = sqrt((eee_Max_Limit*(1.+alpha*eee_Max_Limit))/(eee*(1.+alpha*eee)))
-			kx = pvx(ivv)/hbar + (kx - pvx(ivv)/hbar)*padjust
-			ky = pvy(ivv)/hbar + (ky - pvy(ivv)/hbar)*padjust
-			kz = pvz(ivv)/hbar + (kz - pvz(ivv)/hbar)*padjust
-			Elost = Elost + (eee - eee_Max_Limit)     !				   // add up "lost" energy
-			eee=eee_Max_Limit
+			Elost = Elost + (eee - EMAX)     !				   // add up "lost" energy
+			eee=EMAX
 		end if
 !
 	gk = eee*(1.0+alpha*eee)
@@ -967,7 +1035,7 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 !			ei=(sqrt(1.0+4.0*alpha*gk)-1.0)/(2.0*alpha)  ! Tomizawa (1.7)
 	ei = eee
 	ie=int(ei/de)+1
-	if (ie > iemax) ie=iemax   ! denomination to eee_Max_Limit ?
+	if (ie > iemax) ie=iemax   ! denomination to EMAX ?
 !
 !---( 散乱機構の選択 )---
 !
@@ -1128,8 +1196,8 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 		acost = fabs_cost(q0,ki,eee,LT,aed)
 		cnt=cnt+1								! debug
 		if (mod(cnt,100000)==0) then			! debug
-			write(*,*) 'cnt=',cnt,'eee=',eee,' acost=',acost    ! debug
-			write(8,*) 'cnt=',cnt,'eee=',eee,' acost=',acost    ! debug
+			write(*,*) 'cnt=',cnt,'eee=',eee,'acost=',acost,'LT=',LT,'aed=',aed    ! debug
+			write(8,*) 'cnt=',cnt,'eee=',eee,'acost=',acost,'LT=',LT,'aed=',aed    ! debug
 		end if
 	end do
 !               
@@ -1310,7 +1378,7 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	implicit none
 	Double Precision, intent(inout)::  kx,ky,kz,eee
 !		Double Precision, parameter:: QGp=0.3  ! @ Pop-default
-	Double Precision, parameter:: EMIN = 1.e-10   ! @ Pop-definition
+!!	Double Precision, parameter:: EMIN = 1.e-10   ! @ Pop-definition
 !!	Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
 	Double Precision aed
 	integer ivv,LT
@@ -1469,7 +1537,7 @@ end subroutine final_state_inter_scat_g
 subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
 	implicit none
 	Double Precision, intent(inout)::  kx,ky,kz,eee
-	Double Precision, parameter:: EMIN = 1.e-10   ! @ Pop-definition
+!!	Double Precision, parameter:: EMIN = 1.e-10   ! @ Pop-definition
 !!	Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
 	Double Precision aed
 	integer ivv,LT
@@ -1829,8 +1897,8 @@ subroutine energy_dist(Elec)
 !
 !---( エネルギーヒストグラムの出力 )---
 !
-	write(*,*) 'emax=',eemax, '  particle#', iemax ! debug
-	write(8,*) 'emax=',eemax, '  particle#', iemax ! debug
+	write(*,*) 'Emax=',eemax, '  particle#', iemax ! debug
+	write(8,*) 'Emax=',eemax, '  particle#', iemax ! debug
 !
 	do n=1,nhist
 !			write(*,*) real(n)/real(nhist)*eemax,'  ',ehist(n)
