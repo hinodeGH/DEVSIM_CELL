@@ -40,9 +40,9 @@
 ! 2018.08.16 rnd() -> system random number:call random_number()
 ! 2018.08.23 rv04  -> Mersenne random number: call grnd()
 ! 2018.08.25 range mt19937 -> mt19937rv0a:[0 1)  -> (0 1]  for log(grnd)
-! 2018.10.25 add/install function Ran1
+! 2018.10.25 impliment function Ran1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
-module random_number
+module M_random_number
 !
 !	mt19937rv0a 
 	implicit none
@@ -117,7 +117,6 @@ Double Precision function grnd()	! real(8) -> Double Precision *********
 	grnd = 1.0d0 - grnd  !  range [0 1)  -> (0 1]  for log(grnd)
 !      
 end function grnd 
-!
 !........................................................................................
 ! 
 Double Precision function gasdev() !gaussian random number:Box Muller's method
@@ -152,11 +151,13 @@ Double Precision function gasdev() !gaussian random number:Box Muller's method
 	end if
 end function gasdev
 !========================================================================================
-Double Precision Function Ran1(idum)
-											!	Numerical Recipes in Fortran 2nd Ed. p.271
-	integer idum,IA,IM,IQ,IR,NTAB,NDIV
-	Double Precision AM,EPS,RNMX
-!	Parameter(IA=16807,IM=2147483647,AM=1./IM,IQ=127773,IR=2836,NTAB=32,NDIV=1+(IM-1)/NTAB,EPS=1.2e-7,RNMX=1.-EPS)
+end module M_random_number
+!****************************************************************************************
+!						ran1 at Numerical Recipes in Fortran 2nd Ed. p.271	
+module N_random_number
+	implicit none
+	integer,private :: IA,IM,IQ,IR,NTAB,NDIV
+	Double Precision,private ::  AM,EPS,RNMX
 	Parameter(IA=16807,IM=2147483647,AM=1./IM,IQ=127773,IR=2836,NTAB=32,NDIV=1+(IM-1)/NTAB,EPS=3.0e-16,RNMX=1.-EPS)
 !
 !	Minimal random number generator of Park and Miller with Bays-Durham shuffle and added safegurds.
@@ -164,10 +165,16 @@ Double Precision Function Ran1(idum)
 !	Call with idum a negetive integer to initialize; thereafter, do not alter idum between successive deviates in a sequence.
 !	RNMX should approximate the largest floating value that is less than 1.
 !
-	integer j,k,iv(NTAB),iy
-	SAVE iv, iy
+	integer,private ::  j,k,iv(NTAB),iy,idum
+	SAVE iv, iy, idum
 	DATA iv /NTAB*0/, iy /0/
 !
+	contains
+!
+subroutine sgrnd(seedGen)
+	integer seedGen
+!
+	idum=seedGen
 	if (idum.LE.0. .OR. iy.EQ.0) then 		!	initialize.
 		idum=max(-idum,1)					!	Be sure to prevent idum=0
 		do j=NTAB+8, 1, -1					!	Load the shuffle table (after 8 warm-ups)
@@ -178,20 +185,55 @@ Double Precision Function Ran1(idum)
 		end do
 		iy=iv(1)
 	end if
+end subroutine sgrnd
+!
+Double Precision function grnd()
+!
 	k=idum/IQ								!	Start here when not initializing.
 	idum=IA*(idum-k*IQ)-IR*k				!	Compute idum=mod(IA*idum,IM) without overflows by Schrange's method.
-!	if (idum .LT. 0) idum=idum*IM
 	if (idum .LT. 0) idum=idum+IM	
-!	j=1+iy/NDIV
-	j=iy/NDIV								!	Will be in the range 1:NTAB.
+	j=1+iy/NDIV								!	Will be in the range 1:NTAB.
 	iy=iv(j)								!	Output previously stored value and refill the shuffle table.
 	iv(j)=idum
-	Ran1=min(AM*iy,RNMX)					!	Because users don't expect endpoint values.
+	grnd=min(AM*iy,RNMX)					!	Because users don't expect endpoint values.
 	return
-END Function Ran1
-!========================================================================================
+END function grnd
+!........................................................................................
+! 
+Double Precision function gasdev() !gaussian random number:Box Muller's method
+	implicit none
+	integer :: iset=0   ! 0 setting is only once at first function call
+	Double Precision gset
+	Double Precision  fac,rsq,v1,v2
+	integer cnt				!! debug
 !
-end module random_number
+	if  (iset == 0) then
+		v1=2.0d0*grnd()-1.0d0
+		v2=2.0d0*grnd()-1.0d0
+		rsq=v1*v1+v2*v2
+		cnt=1				!! debug
+		do while (rsq >= 1.0 .OR. rsq == 0.0)
+			v1=2.0d0*grnd()-1.0d0
+			v2=2.0d0*grnd()-1.0d0
+			rsq=v1*v1+v2*v2
+			cnt=cnt+1				!! debug
+			if (cnt==10000) then				!! debug
+				write(*,*) 'gasdev while cnt=', cnt				!! debug
+				write(8,*) 'gasdev while cnt=', cnt				!! debug
+			end if				!! debug
+		end do
+		fac=sqrt(-2.0*log(rsq)/rsq)
+		gset=v1*fac
+		iset=1
+		gasdev = v2*fac
+	else
+		iset=0
+		gasdev = gset
+	end if
+end function gasdev
+!========================================================================================
+end module N_random_number
+!
 !****************************************************************************************
 module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 !		from Pop_sub_program_variables
@@ -275,14 +317,14 @@ module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 	Double Precision pvx(6), pvy(6), pvz(6)  ! 6 valley p offset
 	Double Precision mx(6), my(6), mz(6)     ! mx,my,mz at 6 valleys
 !
-	integer ran1_idum						!	dummy variable for function ran1
+!	integer ran1_idum						!	dummy variable for function ran1
 !
 end module Tom2Pop_sub_program_variables
 !****************************************************************************************
 module Pop_sub_programs
 	use Tom2Pop_sub_program_variables
-!	use Tom_global_variables
-	use random_number
+!	use M_random_number
+	use N_random_number
 	implicit none
 	contains
 !--------------- 以下に次のサブルーチン ------------
@@ -489,8 +531,8 @@ end module Pop_sub_programs
 !========================================================================================
 module Tom_sub_programs
 	use Tom2Pop_sub_program_variables
-!	use Tom_global_variables
-	use random_number
+!	use M_random_number
+	use N_random_number
 	use Pop_sub_programs
 	implicit none
 	contains
@@ -577,7 +619,7 @@ subroutine param
 	Double Precision,parameter::ep0 = 5.52634972e+05    ! e/V/cm    !真空誘電率
 	Double Precision,parameter::m0 = 5.68562975e-16    ! eV*s^2/cm^2  !electron mass
 !      
-!!!      remind   LA=1, TA=2, LO=3, TO=4
+!!!			remind LT=   LA=1, TA=2, LO=3, TO=4
 !		 aed = -1. for absorption,  +1. for emission
 !!	Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
 !  /************************************************************************/
@@ -672,8 +714,8 @@ subroutine param
 	ETAg = hbar*get_wq(QGp*QMAX,TA)     ! // ~ 10 meV
 	ELAg = hbar*get_wq(QGp*QMAX,LA)     ! // ~ 19 meV
 	ELOg = hbar*get_wq(QGp*QMAX,LO)     ! // ~ 64 meV
-	write(*,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
-	write(8,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
+!!	write(*,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
+!!	write(8,*) ELOg,ETOf,ELAg,ETAg,ELAf,ETAf         ! debug
 !
 	de=0.0005D0   ! energy step  ! Tom(2meV)->Pop(0.5meV)
 	iemax=nint(EMAX/de)+2	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3002div)
@@ -811,10 +853,9 @@ subroutine initia(t,Elec,iv)
 	integer MBdist  ! 1:initial=Maxwell-Boltzman distribution
 !
 	t=0.d0
-	call sgrnd(1)                    !乱数 seed=1
+	call sgrnd(-99)                    !乱数 seed=1
 	MBdist=1
 !!	MBdist=0
-	ran1_idum=-99
 	do  n=1,inum
 !--------------------------------------------- begin isotropic Maxwell-Boltzman(Pop)
 		if (MBdist == 1) then
@@ -1012,9 +1053,6 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 	integer ,intent(in)::NBph
 	Double Precision, intent(in)::DEph
 	Double Precision padjust, Elost
-!!	Double Precision, Parameter :: eee_Min_Limit=1.0e-10 	! 0.4->0.1meV avoid infinit loop at do while
-!!	Double Precision, Parameter :: EMAX=2.0 		! 2eV avoid infinit loop at do while
-!!	Double Precision, Parameter :: EMAX=1.5
 !
 !---( 散乱前のエネルギーの計算 )---
 !
@@ -1385,9 +1423,6 @@ end subroutine final_state_intra_ScatByLATA
 subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
 	implicit none
 	Double Precision, intent(inout)::  kx,ky,kz,eee
-!		Double Precision, parameter:: QGp=0.3  ! @ Pop-default
-!!	Double Precision, parameter:: EMIN = 1.e-10   ! @ Pop-definition
-!!	Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
 	Double Precision aed
 	integer ivv,LT
 	integer cnt, REDO, BZCLIP
@@ -1575,47 +1610,7 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	pxo = hbar*kx
 	pyo = hbar*ky
 	pzo = hbar*kz
-!			#else
-!			if ((lt == LA) || (lt == LO)) {
-!			ephon = ELAf
-!			 } else if (lt == TA) {
-!			ephon = ETAf
-!			} else {
-!			ephon = ETOf
-!			}
-!			qphon = QFp*QMAX
-!			if (aed > 0.) assert((eee - ephon) > EMIN)
-!			#endif
 !
-!			// change valley upon scattering if we're in strained or bulk Si
-!			if (SIGEX > 0.0) {
-!			#ifdef POP
-!			ephon = hbar*get_wq(QFp*QMAX,lt);  // MAKE SURE WHEN THIS lt IS LA OR LO
-!			#endif
-!			r = ranmc()
-!			// DOSe(E-aed*ephon+DESIGEX);
-!			if ((iv0+1)/2 == 2)    {       // iv = {3,4} (D2 lower valley)
-!			if (r*DOSe(eee-aed*ephon+DESIGEX) > DOSe(eee-aed*ephon-DESIGEX)) {
-!			return 0                  // self-scattering and return
-!			} else {
-!			change_noneq_valley(j)        // --> {1,2,5,6} continue
-!			EX = -DESIGEX
-!			}
-!			} else {                 // iv = {1,2,5,6} (D4 upper valley)
-!			if (r < 0.5) {
-!			iv[j] = 3 + ifloor(2.*ranmc())        // --> {3,4}
-!			EX = DESIGEX
-!			} else if (r < (0.5 + DOSe(eee-aed*ephon)/DOSe(eee-aed*ephon+DESIGEX))) {
-!			if ((iv0+1)/2 == 1)            // iv = {1,2} --> {5,6}
-!			iv[j] = 5 + ifloor(2.*r)
-!			else                           // iv = {5,6} --> {1,2}
-!			iv[j] = 1 + ifloor(2.*r)
-!			} else {
-!			return 0
-!			}
-!			}
-!			// DON'T FORGET TO ADD/SUBTRACT EX = +/-DESIGEX ENERGY BELOW!!!
-!			} else {
 	call change_noneq_valley(ivv)
 !			}
 !			#ifdef POP
