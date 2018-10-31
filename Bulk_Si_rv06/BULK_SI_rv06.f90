@@ -109,12 +109,12 @@ Double Precision function grnd()	! real(8) -> Double Precision *********
 	y = ieor(y, ishft(y, -18)) 
 !
 	if(y < 0) then 
-		grnd = (dble(y) + 2.0d0 ** 32) / (2.0d0 ** 32) 
+		grnd = (dble(y) + 2.d0 ** 32) / (2.d0 ** 32) 
 	else 
-		grnd = dble(y) / (2.0d0 ** 32) 
+		grnd = dble(y) / (2.d0 ** 32) 
 	endif 
 !
-	grnd = 1.0d0 - grnd  !  range [0 1)  -> (0 1]  for log(grnd)
+	grnd = 1.d0 - grnd  !  range [0 1)  -> (0 1]  for log(grnd)
 !      
 end function grnd 
 !........................................................................................
@@ -127,13 +127,13 @@ Double Precision function gasdev() !gaussian random number:Box Muller's method
 	integer cnt				!! debug
 !
 	if  (iset == 0) then
-		v1=2.0d0*grnd()-1.0d0
-		v2=2.0d0*grnd()-1.0d0
+		v1=2.d0*grnd()-1.d0
+		v2=2.d0*grnd()-1.d0
 		rsq=v1*v1+v2*v2
 		cnt=1				!! debug
 		do while (rsq >= 1.0 .OR. rsq == 0.0)
-			v1=2.0d0*grnd()-1.0d0
-			v2=2.0d0*grnd()-1.0d0
+			v1=2.d0*grnd()-1.d0
+			v2=2.d0*grnd()-1.d0
 			rsq=v1*v1+v2*v2
 			cnt=cnt+1				!! debug
 			if (cnt==10000) then				!! debug
@@ -141,7 +141,7 @@ Double Precision function gasdev() !gaussian random number:Box Muller's method
 				write(8,*) 'gasdev while cnt=', cnt				!! debug
 			end if				!! debug
 		end do
-		fac=sqrt(-2.0*log(rsq)/rsq)
+		fac=sqrt(-2.d0*log(rsq)/rsq)
 		gset=v1*fac
 		iset=1
 		gasdev = v2*fac
@@ -158,7 +158,7 @@ module N_random_number
 	implicit none
 	integer,private :: IA,IM,IQ,IR,NTAB,NDIV
 	Double Precision,private ::  AM,EPS,RNMX
-	Parameter(IA=16807,IM=2147483647,AM=1./IM,IQ=127773,IR=2836,NTAB=32,NDIV=1+(IM-1)/NTAB,EPS=3.0e-16,RNMX=1.-EPS)
+	Parameter(IA=16807,IM=2147483647,AM=1./IM,IQ=127773,IR=2836,NTAB=32,NDIV=1+(IM-1)/NTAB,EPS=3.d-16,RNMX=1.-EPS)
 !
 !	Minimal random number generator of Park and Miller with Bays-Durham shuffle and added safegurds.
 !	Returns a uniform random deviate between 0.0 and 1.0 (exclusive of the endpoint values).
@@ -208,13 +208,13 @@ Double Precision function gasdev() !gaussian random number:Box Muller's method
 	integer cnt				!! debug
 !
 	if  (iset == 0) then
-		v1=2.0d0*grnd()-1.0d0
-		v2=2.0d0*grnd()-1.0d0
+		v1=2.d0*grnd()-1.d0
+		v2=2.d0*grnd()-1.d0
 		rsq=v1*v1+v2*v2
 		cnt=1				!! debug
 		do while (rsq >= 1.0 .OR. rsq == 0.0)
-			v1=2.0d0*grnd()-1.0d0
-			v2=2.0d0*grnd()-1.0d0
+			v1=2.d0*grnd()-1.d0
+			v2=2.d0*grnd()-1.d0
 			rsq=v1*v1+v2*v2
 			cnt=cnt+1				!! debug
 			if (cnt==10000) then				!! debug
@@ -222,7 +222,7 @@ Double Precision function gasdev() !gaussian random number:Box Muller's method
 				write(8,*) 'gasdev while cnt=', cnt				!! debug
 			end if				!! debug
 		end do
-		fac=sqrt(-2.0*log(rsq)/rsq)
+		fac=sqrt(-2.d0*log(rsq)/rsq)
 		gset=v1*fac
 		iset=1
 		gasdev = v2*fac
@@ -238,63 +238,60 @@ end module N_random_number
 module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 !		from Pop_sub_program_variables
 	implicit none
-	Double Precision,parameter::EMIN = 0.0D-10	! Pop 1.0D-10 << 0.0005(=de)
+	Double Precision,parameter::EMIN = 0.d-10	! Pop 1.d-10 << 0.0005(=de)
 	Double Precision,parameter::EMAX = 1.5D0	! 1.5eV <2eV
-	Double Precision,parameter::QMIN = 1.0              ! // nearly zero compared to QMAX
-	Double Precision,parameter::QMAX = 1.1569113068e+08 !  2*pi/asi
-!				#define asi    5.431e-08        // lattice constant, cm 
-!!	Double Precision,parameter::QMAX = 1.15691130546861e+08		!	just Pop_C value
-!    Double Precision,parameter::asi = 5.431e-08         ! // lattice constant, cm
-	Double Precision,parameter::Rws = 2.1224e-8         !  asi*pow(3./(16.*pi), 1./3.)
-!	Double Precision,parameter::alpha = 0.481575201309447
+	Double Precision,parameter::QMIN = 1.d0	! // nearly zero compared to QMAX
+	Double Precision,parameter::QMAX = 1.1569113068d+08		!  2*pi/asi
+!				#define asi    5.431d-08        // lattice constant, cm 
+!!	Double Precision,parameter::QMAX = 1.15691130546861d+08		!	just Pop_C value
+!    Double Precision,parameter::asi = 5.431d-08         ! // lattice constant, cm
+	Double Precision,parameter::Rws = 2.1224d-8         !  asi*pow(3./(16.*pi), 1./3.)
 !                                           Egap = 1.1756 - 8.8131e-05*T - 2.6814e-07*T*T
-!		                                     alpha = 0.5*1.1250281/Egap 
-!!	Double Precision,parameter::mdos = 1.86314779783618E-16      ! pow(ml*mt*mt, 1./3.) eV*s^2/cm^2
-!     ml = 0.9163*m0               // 5.2097e-16 eV*s^2/cm^2
-!     mt = 0.1880*m0*1.1756/Egap   // 1.1220e-16 eV*s^2/cm^2
-!				#define m0     5.68562975e-16      // eV*s^2/cm^2
+!!	Double Precision,parameter::mdos = 1.86314779783618D-16      ! pow(ml*mt*mt, 1./3.) eV*s^2/cm^2
+!     ml = 0.9163*m0               // 5.2097d-16 eV*s^2/cm^2
+!     mt = 0.1880*m0*1.1756/Egap   // 1.1220d-16 eV*s^2/cm^2
+!				#define m0     5.68562975d-16      // eV*s^2/cm^2
 !
-	Double Precision,parameter::epsSi = 6.46582917e+06	!	// e/V/cm permittivity of Si 11.7*eps0
-!				#define eps0   5.52634972e+05      // e/V/cm permittivity of free space
+	Double Precision,parameter::epsSi = 6.46582917d+06	!	// e/V/cm permittivity of Si 11.7*eps0
+!				#define eps0   5.52634972d+05      // e/V/cm permittivity of free space
 !
 	integer,parameter:: LA=1
 	integer,parameter:: TA=2
     integer,parameter:: LO=3
     integer,parameter:: TO=4
 !
-    Double Precision,parameter::pi = 3.14159265        !π
-    Double Precision,parameter::rho = 1.4516e+12       ! density (eV*s^2/cm^5) (2.329 g/cm^3)
-    Double Precision,parameter::kb = 8.61734318e-05    ! eV/K
-    Double Precision,parameter::hbar = 6.58211915e-16  ! eV*s
+    Double Precision,parameter::pi = 3.14159265d0        !π
+    Double Precision,parameter::rho = 1.4516d+12       ! density (eV*s^2/cm^5) (2.329 g/cm^3)
+    Double Precision,parameter::kb = 8.61734318d-05    ! eV/K
+    Double Precision,parameter::hbar = 6.58211915d-16  ! eV*s
 !
-    Double Precision,parameter::DLA = 6.39   ! debug 13.0= 6.39 x ~2
-    Double Precision,parameter::DTA = 3.01   ! debug 6.0=3.01 x ~2
-!    Double Precision,parameter::Temp = 300.0
-    Double Precision,parameter::Absorption = -1.0
-    Double Precision,parameter::EMS = 1.0
+    Double Precision,parameter::DLA = 6.39d0   ! debug 13.0= 6.39 x ~2
+    Double Precision,parameter::DTA = 3.01d0   ! debug 6.0=3.01 x ~2
+    Double Precision,parameter::Absorption = -1.d0
+    Double Precision,parameter::EMS = 1.d0
 !			  // f- and g-phonon norm, to be multiplied by QMAX
-    Double Precision, parameter:: QGp = 0.3           ! @ Pop-default
-!	Double Precision, parameter:: QFp = 1.022252415 ! sqrt(1. + 2.*0.15*0.15)
-	Double Precision, parameter:: QFp = 1.022252	!	just Pop_C value
-    Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
+    Double Precision, parameter:: QGp = 0.3d0           ! @ Pop-default
+	Double Precision, parameter:: QFp = 1.022252415d0 ! sqrt(1. + 2.*0.15*0.15)
+!	Double Precision, parameter:: QFp = 1.022252d0	!	just Pop_C value
+    Double Precision,parameter::PQMAX = 7.6149280673d-08 ! hbar*QMAX(Wigner-Seitz cell radius)
     
 	Double Precision,parameter::LTAO(4,3) = &
-						&  reshape( (/-0.196e-2, -0.250e-2, -0.156e-2,     0.137e-2, &
-						&              9.00e5,    5.33e5,    0.0000,      -2.91e5,   &
-						&              0.0,       0.0,       9.87682e13,   1.027e14 /),(/4,3/) )
+						&  reshape( (/-0.196d-2, -0.250d-2, -0.156d-2,     0.137d-2, &
+						&              9.00d5,    5.33d5,    0.0000d0,      -2.91d5,   &
+						&              0.0d0,       0.0d0,       9.87682d13,   1.027d14 /),(/4,3/) )
 !	Double Precision,parameter::LTAO(4,3) = &
-!						&  reshape( (/-0.200e-2, -0.260e-2, -0.160e-2,     0.111e-2, &
-!						&              9.01e5,    5.23e5,    0.0000,      -2.57e5,   &
-!						&              0.0,       0.0,       9.88e13,   1.02e14 /),(/4,3/) )
+!						&  reshape( (/-0.200d-2, -0.260d-2, -0.160d-2,     0.111d-2, &
+!						&              9.01d5,    5.23d5,    0.0000d0,      -2.57d5,   &
+!						&              0.0d0,       0.0d0,       9.88d13,   1.02d14 /),(/4,3/) )
 !	Double Precision,parameter::LTAO(4,3) = &
-!						&  reshape( (/ 0.0,       0.0, 		-0.156e-2,     0.137e-2, &
-!						&              9.00e5,    5.33e5,    0.0000,      -2.91e5,   &
-!						&              0.0,       0.0,       9.87682e13,   1.027e14 /),(/4,3/) )
+!						&  reshape( (/ 0.0d0,       0.0d0, 		-0.156d-2,     0.137d-2, &
+!						&              9.00d5,    5.33d5,    0.0000d0,      -2.91d5,   &
+!						&              0.0d0,       0.0d0,       9.87682d13,   1.027d14 /),(/4,3/) )
 !
 !		from Tom_global_variables   !----- 共通変数 -----
 	Double Precision dt,Temp,fx
 	Double Precision de
-	Double Precision :: swk(18,3002)=0.0d0
+	Double Precision :: swk(18,3002)=0.d0
 	Double Precision mdos      
 	Double Precision gm                 
 	Double Precision smh,hhml,hhmt         
@@ -374,9 +371,9 @@ Double Precision function get_nq(q, lt)       ! phonon occupation
 	Double Precision xx
 !	
 	xx = hbar*get_wq(q,lt)/(kb*Temp)
-!						/* if (xx < 3.5) return (1./xx -0.5 +xx/12. -xx*xx*xx/720.)
+!						/* if (xx < 3.5d0) return (1.d0/xx -0.5d0 +xx/12.d0 -xx*xx*xx/720.d0)
 !						else return exp(-xx) */
-	get_nq = (1./(exp(xx)-1.))
+	get_nq = (1.d0/(exp(xx)-1.d0))
 end function get_nq
 !========================================================================================
 Double Precision function get_Mq(q, lt, aed)
@@ -386,13 +383,13 @@ Double Precision function get_Mq(q, lt, aed)
 	integer, intent(in)::lt
 	Double Precision gq
 !	
-	if (q > QMAX) q = 2.*QMAX-q               !    // returns to the first BZ
+	if (q > QMAX) q = 2.d0*QMAX-q               !    // returns to the first BZ
 !					#ifdef POP
-		gq = 3.*(sin(q*Rws)-q*Rws*cos(q*Rws))/((q*Rws)**3)
+		gq = 3.d0*(sin(q*Rws)-q*Rws*cos(q*Rws))/((q*Rws)**3.d0)
 !					#else
-!					gq = 1.0             !  // overlap integral
+!					gq = 1.d0             !  // overlap integral
 !					#endif
-	get_Mq = (q*q*gq*gq*(get_nq(q,lt)+0.5+0.5*aed)/get_wq(q,lt))
+	get_Mq = (q*q*gq*gq*(get_nq(q,lt)+0.5d0+0.5d0*aed)/get_wq(q,lt))
 end function get_Mq
 !========================================================================================
 Double Precision function fabs_cost(q, k, E, lt, aed)
@@ -403,7 +400,7 @@ Double Precision function fabs_cost(q, k, E, lt, aed)
 !					 |cos(t)| = |+/-q/(2k) + m*w(q)/(hbar*k*q)|   +em/-ab
 	wq = get_wq(q,lt)
 !					 *****  aed = -1. for absorption,  +1. for emission
-	fabs_cost = abs( aed*q/(2.0*k) + mdos*(1.0 + alpha*(2.0*E - aed*hbar*wq))*wq/(hbar*k*q) )
+	fabs_cost = abs( aed*q/(2.d0*k) + mdos*(1.d0 + alpha*(2.d0*E - aed*hbar*wq))*wq/(hbar*k*q) )
 !
 end function fabs_cost
 !========================================================================================
@@ -416,14 +413,14 @@ Double Precision function find_root(q1, q2, k, E, lt, aed)
 	integer cnt				!! debug
 !					 find root of |cos(t)| - 1 in interval q1..q2 */
 	q=q2
-	eps = (q2-q1)/40.               ! 20.
+	eps = (q2-q1)/40.d0               ! 20.
 	f1 = fabs_cost(q1,k,E,lt,aed)
 	f2 = fabs_cost(q2,k,E,lt,aed)
 	fs = (f2-f1)/abs(f2-f1)
 	cnt=1				!! debug
 	do while (q2-q1 > eps) 
-		q = 0.5*(q1+q2)
-		if (fs*(fabs_cost(q,k,E,lt,aed)- 1.) > 0.) then
+		q = 0.5d0*(q1+q2)
+		if (fs*(fabs_cost(q,k,E,lt,aed)- 1.d0) > 0.) then
 			q2 = q
 		else
 			q1 = q
@@ -456,7 +453,7 @@ Double Precision function acrate3(E, lt, aed)
 	allocate(q(MULT*N))
 	allocate(integ(MULT*N))
 !						 /* k is the electron wavevector in Herring-Vogt space */
-	k = sqrt(2.*mdos*E*(1.+alpha*E))/hbar
+	k = sqrt(2.d0*mdos*E*(1.+alpha*E))/hbar
 !
 	q1 = QMIN
 	q2 = QMAX
@@ -525,20 +522,20 @@ Double Precision function rateDOP(Ed)
 	implicit none
 	Double Precision Ed, beta,gamma, ks,v0,xx,Gx,bb
 !	
-	if (DOPING >= 1.0e12) then
+	if (DOPING >= 1.d12) then
 		if (Ed < DE) Ed = DE
 		beta = sqrt(DOPING/(epsSi*kb*Temp))
 		gamma = Ed*(1.+alpha*Ed)
-		ks = sqrt(2.*mdos*gamma)/hbar
-		v0 = hbar*ks/(mdos*(1.+2.0*alpha*Ed))
-		xx = hbar*hbar*(2.*ks)*(2.*ks)/(8.*mdos*kb*Temp)
-		Gx = (1.+0.165651*xx**2.+0.0557896*xx**4.)/ 	&
-		&	(1.+0.829201*xx**2.+0.343064*xx**4.+0.111354*xx**6)
-		bb = 4.*ks*ks/(beta*beta*Gx)
-		rateDOP = DOPING/(2.*pi*hbar*hbar*epsSi*epsSi*v0*4.*ks*ks)
-		rateDOP = 0.8*2.0*rateDOP*(log(1.+bb) - bb/(1.+bb))
+		ks = sqrt(2.d0*mdos*gamma)/hbar
+		v0 = hbar*ks/(mdos*(1.d0+2.d0*alpha*Ed))
+		xx = hbar*hbar*(2.d0*ks)*(2.d0*ks)/(8.d0*mdos*kb*Temp)
+		Gx = (1.d0+0.165651d0*xx**2.+0.0557896d0*xx**4.d0)/ 	&
+		&	(1.d0+0.829201d0*xx**2.d0+0.343064d0*xx**4.d0+0.111354d0*xx**6d0)
+		bb = 4.d0*ks*ks/(beta*beta*Gx)
+		rateDOP = DOPING/(2.d0*pi*hbar*hbar*epsSi*epsSi*v0*4.d0*ks*ks)
+		rateDOP = 0.8d0*2.d0*rateDOP*(log(1.d0+bb) - bb/(1.d0+bb))
 	else
-		rateDOP = 0.0
+		rateDOP = 0.d0
 	end if
 !
 	return
@@ -587,21 +584,21 @@ subroutine data_input(inum_dummy,SimTime)
 	read(5,*) fx       ! electric field [KV/cm] 
 	read(5,*) Doping	!	Dopant Concentration [1/cm3]
 !
-	write(*,*) inum/1E6,' M particles'
+	write(*,*) inum/1D6,' M particles'
 	write(*,*) jtl, ' iteration'
 	write(*,*) dt, ' sec'
 	write(*,*) Temp, ' K'
 	write(*,*) fx, ' KV/cm'
 	write(*,*) Doping, ' /cm3'
 !
-	write(8,*) inum/1E6,' M particles'
+	write(8,*) inum/1D6,' M particles'
 	write(8,*) jtl, ' iteration'
 	write(8,*) dt, ' sec'
 	write(8,*) Temp, ' K'
 	write(8,*) fx, ' KV/cm'
 	write(8,*) Doping, ' /cm3'
 !	
-	fx=fx*1000.0d0   !  kV/cm -> V/cm
+	fx=fx*1000.d0   !  kV/cm -> V/cm
 !
 end subroutine data_input
 !========================================================================================
@@ -611,12 +608,12 @@ end subroutine data_input
     Double Precision Ed,sgamma,dosconst
 !    
     if (Ed > 0.0) then
-	  sgamma = sqrt(Ed*(1.+alpha*Ed)) 
+	  sgamma = sqrt(Ed*(1.d0+alpha*Ed)) 
 !			// includes 2x for spin, else it would be 4x in the denominator
-	  dosconst = 2.0*pi*pi*hbar*hbar*hbar
-	  DOSe = ((2.0*mdos)**1.5)*sgamma*(1. + 2.0*alpha*Ed)/dosconst
+	  dosconst = 2.d0*pi*pi*hbar*hbar*hbar
+	  DOSe = ((2.d0*mdos)**1.5d0)*sgamma*(1.d0 + 2.d0*alpha*Ed)/dosconst
     else
-      DOSe=0.0
+      DOSe=0.d0
     end if
   end function DOSe
 !========================================================================================
@@ -632,39 +629,39 @@ subroutine param
 !
 !!	Double Precision,parameter::pi = 3.14159265        !π
 !
-	Double Precision,parameter::q = 1.0d0               ! e
-	Double Precision,parameter::echarge = 1.0		!  // electron charge 
+	Double Precision,parameter::q = 1.d0               ! e
+	Double Precision,parameter::echarge = 1.d0		!  // electron charge 
 !				#define echarge   -1.0             // electron charge 
-!				#define ecoulom   -1.60217653e-19  // electron charge in Coulombs
-	Double Precision,parameter::hbar  = 6.58211915e-16  ! eV*s 
-	Double Precision,parameter::ep0 = 5.52634972e+05    ! e/V/cm    !真空誘電率
-	Double Precision,parameter::m0 = 5.68562975e-16    ! eV*s^2/cm^2  !electron mass
+!				#define ecoulom   -1.60217653d-19  // electron charge in Coulombs
+	Double Precision,parameter::hbar  = 6.58211915d-16  ! eV*s 
+	Double Precision,parameter::ep0 = 5.52634972d+05    ! e/V/cm    !真空誘電率
+	Double Precision,parameter::m0 = 5.68562975d-16    ! eV*s^2/cm^2  !electron mass
 !      
 !!!			remind LT=   LA=1, TA=2, LO=3, TO=4
 !		 aed = -1. for absorption,  +1. for emission
-!!	Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
+!!	Double Precision,parameter::PQMAX = 7.6149280673d-08 ! hbar*QMAX(Wigner-Seitz cell radius)
 !  /************************************************************************/
 !  /**************** INTERVALLEY SCATTERING (LO+TO+LA+TA) ******************/
 !  /************************************************************************/
-	Double Precision, parameter :: Zf=4.0         ! // f-scat degeneracy of final valley
-	Double Precision, parameter :: Zg=1.0         ! // g-scat degeneracy of final valley
-	Double Precision, parameter :: DTAf = 0.6e8   ! // 18 meV
-	Double Precision, parameter :: DLAf = 3.5e8   ! // 50 meV
-	Double Precision, parameter :: DTOf = 1.5e8   ! // 57 meV
-	Double Precision, parameter :: DTAg = 0.7e8   ! // 10 meV
-	Double Precision, parameter :: DLAg = 1.0e8   ! // 19 meV
-	Double Precision, parameter :: DLOg = 6.0e8   ! // 63 meV
+	Double Precision, parameter :: Zf=4.d0         ! // f-scat degeneracy of final valley
+	Double Precision, parameter :: Zg=1.d0         ! // g-scat degeneracy of final valley
+	Double Precision, parameter :: DTAf = 0.6d8   ! // 18 meV
+	Double Precision, parameter :: DLAf = 3.5d8   ! // 50 meV
+	Double Precision, parameter :: DTOf = 1.5d8   ! // 57 meV
+	Double Precision, parameter :: DTAg = 0.7d8   ! // 10 meV
+	Double Precision, parameter :: DLAg = 1.d8   ! // 19 meV
+	Double Precision, parameter :: DLOg = 6.d8   ! // 63 meV
 	Double Precision scatOconst, Nq
 	Double Precision ETAf, ELAf, ETOf, ETAg, ELAg, ELOg
 !    
 !---( 電子の縦有効質量, 横有効質量, 禁制帯幅, 誘電率 )---
 !
-	Egap = 1.1756 - 8.8131e-05*Temp - 2.6814e-07*Temp*Temp
+	Egap = 1.1756 - 8.8131d-05*Temp - 2.6814d-07*Temp*Temp
 !	write(*,*) 'Egap_Pop=',Egap					! debug
 !	write(8,*) 'Egap_Pop=',Egap					! debug
-	ml = 0.9163*m0					!// 5.2097e-16 eV*s^2/cm^2
-	mt = 0.1880*m0*1.1756/Egap		!// 1.1220e-16 eV*s^2/cm^2
-	eps  = 11.7*ep0  ! Si誘電率
+	ml = 0.9163d0*m0					!// 5.2097e-16 eV*s^2/cm^2
+	mt = 0.1880d0*m0*1.1756d0/Egap		!// 1.1220e-16 eV*s^2/cm^2
+	eps  = 11.7d0*ep0  ! Si誘電率
 !
 !---( フォノン散乱の諸パラメータ )---
 	kbTq = kb*Temp/echarge
@@ -672,52 +669,52 @@ subroutine param
 !
 !---( バンドの非等方性 )---
 !
-	mdos  = (ml*mt*mt)**(1.0/3.0) !相乗平均 effective m 0.328?
-	amc  = 3.0/(1.0/ml+2.0/mt)!逆数相加平均 effective m at B edge 0.266?
+	mdos  = (ml*mt*mt)**(1.d0/3.d0) !相乗平均 effective m 0.328?
+	amc  = 3.d0/(1.d0/ml+2.d0/mt)!逆数相加平均 effective m at B edge 0.266?
 	tm(1)=sqrt(ml/mdos) !縦 1.67
 	tm(2)=sqrt(mt/mdos) !横 0.773
 	tm(3)=sqrt(mt/mdos) !横 0.773
-	smh  = sqrt(2.*mdos*echarge)/hbar    ! h->hbar
-	hhml = hbar/ml/echarge*hbar/2.0 !縦 ! h->hbar
-	hhmt = hbar/mt/echarge*hbar/2.0 !横 ! h->hbar
+	smh  = sqrt(2.d0*mdos*echarge)/hbar    ! h->hbar
+	hhml = hbar/ml/echarge*hbar/2.d0 !縦 ! h->hbar
+	hhmt = hbar/mt/echarge*hbar/2.d0 !横 ! h->hbar
 	hm(1)= hbar/ml !縦 ! h->hbar
 	hm(2)= hbar/mt !横 ! h->hbar
 	hm(3)= hbar/mt !横 ! h->hbar
 !
 !---( バンドの非放物線性 )---
 !
-	alpha = 0.5*1.1250281/Egap
+	alpha = 0.5d0*1.1250281d0/Egap
 !	write(*,*) 'alpha_Pop=',alpha				! debug
 !	write(8,*) 'alpha_Pop=',alpha				! debug
 !
 !---( valley offset values )---
 !
 	do i=1,6
-		pvx(i) = 0.0d0
-        pvy(i) = 0.0d0
-        pvz(i) = 0.0d0
+		pvx(i) = 0.d0
+        pvy(i) = 0.d0
+        pvz(i) = 0.d0
 	end do
-	pvx(1) = -0.85*PQMAX  ! -X axis valley
+	pvx(1) = -0.85d0*PQMAX  ! -X axis valley
 	mx(1) = ml
 	my(1) = mt
 	mz(1) = mt
-	pvx(2) = +0.85*PQMAX  ! +X axis valley
+	pvx(2) = +0.85d0*PQMAX  ! +X axis valley
 	mx(2) = ml
 	my(2) = mt
 	mz(2) = mt
-	pvy(3) = -0.85*PQMAX  ! -Y axis valley
+	pvy(3) = -0.85d0*PQMAX  ! -Y axis valley
 	mx(3) = mt
 	my(3) = ml
 	mz(3) = mt
-	pvy(4) = +0.85*PQMAX  ! +Y axis valley
+	pvy(4) = +0.85d0*PQMAX  ! +Y axis valley
 	mx(4) = mt
 	my(4) = ml
 	mz(4) = mt
-	pvz(5) = -0.85*PQMAX  ! -Z axis valley
+	pvz(5) = -0.85d0*PQMAX  ! -Z axis valley
 	mx(5) = mt
 	my(5) = mt
 	mz(5) = ml
-	pvz(6) = +0.85*PQMAX  ! +Z axis valley
+	pvz(6) = +0.85d0*PQMAX  ! +Z axis valley
 	mx(6) = mt
 	my(6) = mt
 	mz(6) = ml
@@ -726,17 +723,15 @@ subroutine param
 !
 !					 // Fphon = 2-norm([1 .15 .15]) in constants.h
 	ETAf = hbar*get_wq(QFp*QMAX,TA)     ! // ~ 18 meV
-!!	ETAf = 0.01862919
 !					 // this one is actually on the LO branch here b/c Fphon > 1
 	ELAf = hbar*get_wq(QFp*QMAX,LA)     ! // ~ 52 meV
 !					  // see how get_wq() is implemented for LA when q > QMAX
 	ETOf = hbar*get_wq(QFp*QMAX,TO)     ! // ~ 58 meV
-!!	ETOf = 0.05747027  ! debug
 	ETAg = hbar*get_wq(QGp*QMAX,TA)     ! // ~ 10 meV
 	ELAg = hbar*get_wq(QGp*QMAX,LA)     ! // ~ 19 meV
 	ELOg = hbar*get_wq(QGp*QMAX,LO)     ! // ~ 64 meV
 !
-	de=0.0005D0   ! energy step  ! Tom(2meV)->Pop(0.5meV)
+	de=0.0005d0   ! energy step  ! Tom(2meV)->Pop(0.5meV)
 	iemax=MIN(3002,nint(EMAX/de)+2)	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3002div)
 !
 	do ie=1,iemax
@@ -752,42 +747,42 @@ subroutine param
 ! 			 // the value of the overlap integral for inter-valley scattering may
 !  			 // be included in the coupling constants (Jacoboni 1983, p. 672)
 !
-		scatOconst = pi/(2.*rho/hbar)
+		scatOconst = pi/(2.d0*rho/hbar)
 ! 			  /************* optical (63 meV LO-g) phonon emission ****************/
-		Nq = 1./(exp(ELOg/(kb*Temp))-1.)
-		swk(6,ie) = Zg*DLOg*DLOg*(Nq+1.)*DOSe(ei-ELOg)*scatOconst/ELOg
+		Nq = 1.d0/(exp(ELOg/(kb*Temp))-1.d0)
+		swk(6,ie) = Zg*DLOg*DLOg*(Nq+1.d0)*DOSe(ei-ELOg)*scatOconst/ELOg
 !					  /************ optical (63 meV LO-g) phonon absorption ***************/
 		swk(7,ie)  = Zg*DLOg*DLOg*Nq*DOSe(ei+ELOg)*scatOconst/ELOg
-		Nq = 1./(exp(ETOf/(kb*Temp))-1.)
+		Nq = 1.d0/(exp(ETOf/(kb*Temp))-1.d0)
 !					  /************* optical (59 meV TO-f) phonon emission ****************/
-!	DESIGEX					swk(8,ie) = Zf*DTOf*DTOf*(Nq+1.)*DOSe(ei-ETOf+DESIGEX)*scatOconst/ETOf
-		swk(8,ie) = Zf*DTOf*DTOf*(Nq+1.)*DOSe(ei-ETOf)*scatOconst/ETOf
+!	DESIGEX					swk(8,ie) = Zf*DTOf*DTOf*(Nq+1.d0)*DOSe(ei-ETOf+DESIGEX)*scatOconst/ETOf
+		swk(8,ie) = Zf*DTOf*DTOf*(Nq+1.d0)*DOSe(ei-ETOf)*scatOconst/ETOf
 !					  /************ optical (59 meV TO-f) phonon absorption ***************/
 !	DESIGEX			 		swk(9,ie) = Zf*DTOf*DTOf*Nq*DOSe(ei+ETOf+DESIGEX)*scatOconst/ETOf
 		swk(9,ie) = Zf*DTOf*DTOf*Nq*DOSe(ei+ETOf)*scatOconst/ETOf
 !    
 !=====[ 音響フォノンValley間散乱 Pop }===== scattering type 10 - 17
 !					  /************* acoustic (12 meV TA-g) phonon emission ****************/
-		Nq = 1./(exp(ETAg/(kb*Temp))-1.) 
-		swk(10,ie)  = Zg*DTAg*DTAg*(Nq+1.)*DOSe(ei-ETAg)*scatOconst/ETAg
+		Nq = 1.d0/(exp(ETAg/(kb*Temp))-1.d0) 
+		swk(10,ie)  = Zg*DTAg*DTAg*(Nq+1.d0)*DOSe(ei-ETAg)*scatOconst/ETAg
 !					  /************ acoustic (12 meV TA-g) phonon absorption ***************/
 		swk(11,ie)  = Zg*DTAg*DTAg*Nq*DOSe(ei+ETAg)*scatOconst/ETAg
 !					  /************* acoustic (47 meV LA-f) phonon emission ****************/
-		Nq = 1./(exp(ELAf/(kb*Temp))-1.)
-!	DESIGEX					swk(12,ie)  = Zf*DLAf*DLAf*(Nq+1.)*DOSe(ei-ELAf+DESIGEX)*scatOconst/ELAf
-		swk(12,ie)  = Zf*DLAf*DLAf*(Nq+1.)*DOSe(ei-ELAf)*scatOconst/ELAf
+		Nq = 1.d0/(exp(ELAf/(kb*Temp))-1.d0)
+!	DESIGEX					swk(12,ie)  = Zf*DLAf*DLAf*(Nq+1.d0)*DOSe(ei-ELAf+DESIGEX)*scatOconst/ELAf
+		swk(12,ie)  = Zf*DLAf*DLAf*(Nq+1.d0)*DOSe(ei-ELAf)*scatOconst/ELAf
 !					  /************ acoustic (47 meV LA-f) phonon absorption ***************/
 !	DESIGEX 				swk(13,ie)  = Zf*DLAf*DLAf*Nq*DOSe(ei+ELAf+DESIGEX)*scatOconst/ELAf
 		swk(13,ie)  = Zf*DLAf*DLAf*Nq*DOSe(ei+ELAf)*scatOconst/ELAf
 !					  /************* acoustic (19 meV TA-f) phonon emission ****************/
-		Nq = 1./(exp(ETAf/(kb*Temp))-1.)
+		Nq = 1.d0/(exp(ETAf/(kb*Temp))-1.d0)
 !	DESIGEX			 		swk(14,ie)  = Zf*DTAf*DTAf*(Nq+1.)*DOSe(ei-ETAf+DESIGEX)*scatOconst/ETAf
-		swk(14,ie)  = Zf*DTAf*DTAf*(Nq+1.)*DOSe(ei-ETAf)*scatOconst/ETAf
+		swk(14,ie)  = Zf*DTAf*DTAf*(Nq+1.d0)*DOSe(ei-ETAf)*scatOconst/ETAf
 !					  /************ acoustic (19 meV TA-f) phonon absorption ***************/
 !	DESIGEX    				swk(15,ie)  = Zf*DTAf*DTAf*Nq*DOSe(ei+ETAf+DESIGEX)*scatOconst/ETAf
 		swk(15,ie)  = Zf*DTAf*DTAf*Nq*DOSe(ei+ETAf)*scatOconst/ETAf
 !					  /************* acoustic (18 meV LA-g) phonon emission ****************/
-		Nq = 1./(exp(ELAg/(kb*Temp))-1.)
+		Nq = 1.d0/(exp(ELAg/(kb*Temp))-1.d0)
 		swk(16,ie)  = Zg*DLAg*DLAg*(Nq+1.)*DOSe(ei-ELAg)*scatOconst/ELAg
 !					  /************ acoustic (18 meV LA-g) phonon absorption ***************/
 		swk(17,ie)  = Zg*DLAg*DLAg*Nq*DOSe(ei+ELAg)*scatOconst/ELAg
@@ -858,7 +853,6 @@ end subroutine param
 !
 subroutine initia(t,Elec,iv)
 	implicit none
-!!	Double Precision,parameter::pi = 3.14159        !π
 !      
 	Double Precision, intent(out)::t
 	Double Precision, intent(out)::Elec(:,:)
@@ -875,21 +869,21 @@ subroutine initia(t,Elec,iv)
 	do  n=1,inum
 !--------------------------------------------- begin isotropic Maxwell-Boltzman(Pop)
 		if (MBdist == 1) then
-			kx = smh*sqrt(kbTq/2.0)*gasdev()    ! Local kx
-			ky = smh*sqrt(kbTq/2.0)*gasdev()    ! Local ky
-			kz = smh*sqrt(kbTq/2.0)*gasdev()    ! Local kz
+			kx = smh*sqrt(kbTq/2.d0)*gasdev()    ! Local kx
+			ky = smh*sqrt(kbTq/2.d0)*gasdev()    ! Local ky
+			kz = smh*sqrt(kbTq/2.d0)*gasdev()    ! Local kz
 !--------------------------------------------- begin isotropic initial p (Tom)
 		else
 			rn = grnd()
 !!					write(*,*)ran1_idum,rn		!!	debud
 !!					write(8,*)ran1_idum,rn		!!	debud
 			ei  = -kbTq*log(rn)*1.5d0    !--- give E along exp{-E/(3/2kT)} ~39meV @300K
-			ak  = smh*sqrt(ei*(1.0+alpha*ei)) !--- E -> k
+			ak  = smh*sqrt(ei*(1.d0+alpha*ei)) !--- E -> k
 			rn = grnd()
-			cb  = 1.0-2.0*rn ! cosθ
-			sb  = sqrt(1.0-cb*cb) ! sinθ
+			cb  = 1.d0-2.d0*rn ! cosθ
+			sb  = sqrt(1.d0-cb*cb) ! sinθ
 			rn = grnd()
-			fai = 2.0*pi*rn ! Φ
+			fai = 2.d0*pi*rn ! Φ
 			sf  = sin(fai)
 			kx = ak*cb*sf    ! Local kx
 			ky = ak*sb*sf    ! Local ky
@@ -898,8 +892,8 @@ subroutine initia(t,Elec,iv)
 !--------------------------------------------- end isotropic initial k
 		rn = grnd()
 		Elec(n,TS) = -log(rn)/gm         ! mean free time along exp(-t/gm)
-		Elec(n,XXX) = 0.0 ! x
-		Elec(n,YYY) = 0.0 ! y
+		Elec(n,XXX) = 0.d0 ! x
+		Elec(n,YYY) = 0.d0 ! y
 !
 		rn = grnd()
 		r3=3.*rn
@@ -937,7 +931,7 @@ subroutine initia(t,Elec,iv)
 			Elec(n,PZ)=tm(1)*hbar*kz + pvz(iv(n)) ! 縦 Global pz
 			gk=hhml*kz**2+hhmt*(kx**2+ky**2)
 		end if
-		Elec(n,EE)=(sqrt(1.0+4.0*alpha*gk)-1.0)/(2.0*alpha)  ! Tomizawa (1.7)
+		Elec(n,EE)=(sqrt(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)  ! Tomizawa (1.7)
 !
 !         if (n<=100) then   ! debug
 !           write(*,*) n,Elec(n,PX),Elec(n,PY),Elec(n,PZ)  ! debug
@@ -985,8 +979,8 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 	Double Precision, intent(in)::DEph
 	Double Precision eeeOLD			!	Energy conservation
 !
-	Egetlost_drift=0.0			!	Energy conservation 
-	Egetlost_scat=0.0			!	Energy conservation
+	Egetlost_drift=0.d0			!	Energy conservation 
+	Egetlost_scat=0.d0				!	Energy conservation
 !
 	tdt=t+dt
 	do  n=1,inum
@@ -1043,9 +1037,9 @@ subroutine drift(tau,kx,ky,kz,eee,x,y,ivv)  ! Global kx, ky, kz
 !
 	cp  = hm((ivv-1)/2+1)*tau               ! m/h・τ
 
-	gk = eee*(1.0+alpha*eee)
-	sq = sqrt(1.0+4.0*alpha*gk)      !--- anisotropic & non-parabolic
-	x = x+cp*((kx-pvx(ivv)/hbar)+0.5*dkx)/sq   !--- dx=h/m・τ(kx +0.5・dkx)/sq
+	gk = eee*(1.d0+alpha*eee)
+	sq = sqrt(1.d0+4.d0*alpha*gk)      !--- anisotropic & non-parabolic
+	x = x+cp*((kx-pvx(ivv)/hbar)+0.5d0*dkx)/sq   !--- dx=h/m・τ(kx +0.5・dkx)/sq
 !
 	kx=kx+dkx                   ! Global kx
 	skx=(kx-pvx(ivv)/hbar)**2   ! Local skx
@@ -1058,7 +1052,7 @@ subroutine drift(tau,kx,ky,kz,eee,x,y,ivv)  ! Global kx, ky, kz
 	else    ! ivv=5 or ivv=6
 		gk=hhml*skz+hhmt*(skx+sky)
 	end if
-	eee=(sqrt(1.0+4.0*alpha*gk)-1.0)/(2.0*alpha)            ! Tomizawa (1.7)
+	eee=(sqrt(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)            ! Tomizawa (1.7)
 !
 end subroutine drift
 !========================================================================================
@@ -1081,7 +1075,7 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 !
 !---( 散乱前のエネルギーの計算 )---
 !
-		Elost = 0.0
+		Elost = 0.d0
 !
 !		if (eee < EMIN) then	!
 !			padjust = sqrt((EMIN*(1.+alpha*EMIN))/(eee*(1.+alpha*eee)))
@@ -1101,9 +1095,9 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 			eee=EMAX
 		end if
 !
-	gk = eee*(1.0+alpha*eee)
-	ki = sqrt(2.0*mdos*gk)/hbar   ! Local k
-!			ei=(sqrt(1.0+4.0*alpha*gk)-1.0)/(2.0*alpha)  ! Tomizawa (1.7)
+	gk = eee*(1.d0+alpha*eee)
+	ki = sqrt(2.d0*mdos*gk)/hbar   ! Local k
+!			ei=(sqrt(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)  ! Tomizawa (1.7)
 	ei = eee
 	ie=int(ei/de)+1
 	if (ie > iemax) ie=iemax   ! denomination to EMAX ?
@@ -1116,23 +1110,23 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 	elseif (r1 <= swk(5,ie)) then   !  LA/TA intra emission/absorption
 		if (r1 <= swk(2,ie)) then   !  LA intra emission
 			LT=LA
-			aed=+1.0d0
-			qM=2.0*ki
+			aed=+1.d0
+			qM=2.d0*ki
 		elseif (r1 <= swk(3,ie)) then   !  LA intra absorption
 			LT=LA
-			aed=-1.0d0
+			aed=-1.d0
 			Epmax = eee + hbar*get_wq(QMAX,LT) 
 			kspmax = sqrt(2.*mdos*Epmax*(1.+alpha*Epmax))/hbar 
 			qM = ki + kspmax
 		elseif (r1 <= swk(4,ie)) then   !  TA intra emission
 			LT=TA
-			aed=+1.0d0  
-			qM=2.0*ki            
+			aed=+1.d0  
+			qM=2.d0*ki            
 		else   !    r1 <= swk(5,ie)     TA intra absorption
 			LT=TA
-			aed=-1.0d0
+			aed=-1.d0
 			Epmax = eee + hbar*get_wq(QMAX,LT)
-			kspmax = sqrt(2.*mdos*Epmax*(1.0+alpha*Epmax))/hbar
+			kspmax = sqrt(2.d0*mdos*Epmax*(1.d0+alpha*Epmax))/hbar
 			qM = ki + kspmax
 		end if
 !
@@ -1140,78 +1134,61 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 !
 	elseif (r1 <= swk(6,ie)) then       !  O-g-emis
 		LT=LO
-		aed=+1.0d0
+		aed=+1.d0
 		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
 	elseif (r1 <= swk(7,ie)) then   !  O-g-abs
 		LT=LO
-		aed=-1.0d0
+		aed=-1.d0
 		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
 	elseif (r1 <= swk(8,ie)) then   !  O-f-emis
 		LT=TO
-		aed=+1.0d0
+		aed=+1.d0
 		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph)
 	elseif (r1 <= swk(9,ie)) then   !  O-f-abs
 		LT=TO
-		aed=-1.0d0
+		aed=-1.d0
 		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph)
 !
 	else if (r1 <= swk(10,ie)) then   ! TA-g emission
 		LT=TA
-		aed=+1.0d0
+		aed=+1.d0
 		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz 
-!					  if (STATS) phonon_stats(EMS,ephon,&EphTA,NETph0,NAgrid,Agrid,ipx,ipy)
+!
 	else if (r1 <= swk(11,ie)) then   ! TA-g absorption
 		LT=TA
-		aed=-1.0d0
+		aed=-1.d0
 		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
-!					  if (STATS) phonon_stats(ABS,ephon,&EphTA,NETph0,NAgrid,Agrid,ipx,ipy)
+!
 	else if (r1 <= swk(12,ie)) then   ! LA-f emission
 		LT=LA
-		aed=+1.0d0
+		aed=+1.d0
 		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz 	
-!
-!					  if (STATS) <18>{
-!						if (ephon < (hbar*get_wq(QMAX,LA))) <20>{   // can also use q0 < QMAX
-!						  phonon_stats(EMS,ephon,&EphLA,NELph0,NAgrid,Agrid,ipx,ipy)
-!						}<20> else <19>{
-!						  phonon_stats(EMS,ephon,&EphLO,NELph0,NOgrid,Ogrid,ipx,ipy)
-!						}<19>
-!					  }<18>
 !
 	else if (r1 <= swk(13,ie)) then   ! LA-f absorption
 		LT=LA
-		aed=-1.0d0
+		aed=-1.d0
 		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
-!
-!				#ifndef NOISE
-!					  if (STATS) <22>{
-!						if (ephon < (hbar*get_wq(QMAX,LA))) <23>{   // can also use q0 < QMAX
-!						  phonon_stats(ABS,ephon,&EphLA,NELph0,NAgrid,Agrid,ipx,ipy)
-!						}<23> else <24>{
-!						  phonon_stats(ABS,ephon,&EphLO,NELph0,NOgrid,Ogrid,ipx,ipy)
-!						}<24>
-!					  }<22>
 !
 	else if (r1 <= swk(14,ie)) then   ! TA-f emission
 		LT=TA
-		aed=+1.0d0
+		aed=+1.d0
 		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
 !
 	else if (r1 <= swk(15,ie)) then   ! TA-f absorption
 		LT=TA
-		aed=-1.0d0
+		aed=-1.d0
 		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
 !
 
 	else if (r1 <= swk(16,ie)) then   ! LA-g emission
 		LT=LA
-		aed=+1.0d0
+		aed=+1.d0
 		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz 
 !
 
 	else if (r1 <= swk(17,ie)) then   ! LA-g absorption
 		LT=LA
-		aed=-1.0d0
+		aed=-1.d0
 		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph)	 ! Global kx, ky, kz 
 !
 	else if (r1 <= swk(18,ie)) then   ! ion scattering
@@ -1241,19 +1218,19 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	integer ie
 	Double Precision Pxyz
 !      
-	C = qM*get_Mq(qM,LT,aed)*(1.0+2.0*alpha*(eee-aed*hbar*get_wq(qM,LT))) 
+	C = qM*get_Mq(qM,LT,aed)*(1.d0+2.d0*alpha*(eee-aed*hbar*get_wq(qM,LT))) 
 !
 	q0 = QMIN + (qM-QMIN)*grnd()
 	ephon = hbar*get_wq(q0,LT)
 	f0 = C*grnd()
-	fx = q0*get_Mq(q0,LT,aed)*(1.0+2.0*alpha*(eee-aed*ephon))
+	fx = q0*get_Mq(q0,LT,aed)*(1.d0+2.d0*alpha*(eee-aed*ephon))
 	acost = fabs_cost(q0,ki,eee,LT,aed)
 	cnt=1									! debug
-	do while ((f0 > fx) .OR. (acost > 1.0d0))
+	do while ((f0 > fx) .OR. (acost > 1.d0))
 		q0 = QMIN + (qM-QMIN)*grnd()
 		ephon = hbar*get_wq(q0,LT)
 		f0 = C*grnd()
-		fx = q0*get_Mq(q0,LT,aed)*(1.0+2.0*alpha*(eee-aed*ephon))
+		fx = q0*get_Mq(q0,LT,aed)*(1.d0+2.d0*alpha*(eee-aed*ephon))
 		acost = fabs_cost(q0,ki,eee,LT,aed)
 		cnt=cnt+1								! debug
 		if (mod(cnt,100000)==0) then			! debug
@@ -1271,9 +1248,9 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	if (ie > NBph) then
 		write(*,*) '** WARNING 1 ** too large ephon',ephon
 	else if (LT==LA .OR. LT==LO) then
-		NELph0(ie)=NELph0(ie)+aed*1.0d0
+		NELph0(ie)=NELph0(ie)+aed*1.d0
 	else if (LT==TA .OR. LT==TO) then
-		NETph0(ie)=NETph0(ie)+aed*1.0d0
+		NETph0(ie)=NETph0(ie)+aed*1.d0
 	end if
 !
 	qdum = q0
@@ -1281,10 +1258,10 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !        
 !--- calculation of final state for LA/TA phonon emission/absorption (type=2-5)
 !   /********* non-parabolicity from tomizawa eq. 1.11 page 8 *********/
-	pprime = sqrt(2.0*mdos*eee*(1.+alpha*eee)) !
+	pprime = sqrt(2.d0*mdos*eee*(1.d0+alpha*eee)) !
 	kprime = pprime/hbar  ! k=p/hbar
 !				  /***** momentum conservation for angle beta b/w ki and kprime *****/
-	cbet = (ki*ki+kprime*kprime-q0*q0)/(2.0*ki*kprime) ! low of cosine
+	cbet = (ki*ki+kprime*kprime-q0*q0)/(2.d0*ki*kprime) ! low of cosine
 !
 	if (abs(cbet) > 1.0) then
 		write(*,*) 'error abs(cbet) > 1.0'
@@ -1293,14 +1270,9 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !		 	 exit(-1)
 		stop
 	end if
-	sbet = sqrt(1.-cbet*cbet)
+	sbet = sqrt(1.d0-cbet*cbet)
 !		          /*** gam = angle b/w ki and Z-axis ***/
 	cgam = (hbar*kz-pvz(ivv))*sqrt(mdos/mz(ivv))/(hbar*ki)
-!!			if (abs(cgam) > 1.) then
-!!	if (abs(cgam) > 1.0 .AND. abs(cgam) <= 1.03) then
-!!		write(*,*) '** WARNING 3  |cgam|>1;  cgam=',cgam	   !debug      
-!!		cgam=abs(cgam)/cgam  ! 3% denomination by kjh
-!!	end if
 	if (abs(cgam) > 1.0) then
 		write(*,*) 'error abs(cgam) > 1.0'
 		write(*,*) 'cbet=',cbet,' sbet=',sbet,' cgam=',cgam    !debug
@@ -1308,7 +1280,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !	 			 exit(-1)
 		stop
 	end if
-	sgam = sqrt(1.-cgam*cgam)
+	sgam = sqrt(1.d0-cgam*cgam)
 !			/*** gamp = angle b/w ki and Y-axis ***/
 	cgamp = (hbar*ky-pvy(ivv))*sqrt(mdos/my(ivv))/(hbar*ki)
 !			/*** gampp = angle b/w ki and X-axis ***/
@@ -1321,7 +1293,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !
 !     begin   once for while
 !			/*** rotation phi chosen at random ***/
-	phi = 2.*pi*grnd()
+	phi = 2.d0*pi*grnd()
 	sphi = sin(phi) 
 	cphi = cos(phi) 
 !			/*** compute final state momentum components, like Jacoboni Rev. Mod.
@@ -1348,7 +1320,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !!		do while ((MAX(abs(kx),abs(ky),abs(kz)) > PQMAX/hbar) .AND. (cnt < 200) .AND. (BZCLIP==1))  ! <37>{
 	do while ((Pxyz > PQMAX) .AND. (cnt < 200) .AND. (BZCLIP==1))
 !			/*** rotation phi chosen at random ***/
-		phi = 2.*pi*grnd()
+		phi = 2.d0*pi*grnd()
 		sphi = sin(phi)
 		cphi = cos(phi)
 !     		/*** compute final state momentum components, like Jacoboni Rev. Mod.
@@ -1374,13 +1346,11 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	if (cnt > 200) then !  <39>{          // note:  this never happens if BZCLIP = 0
 !		  if (cnt > 200) write(*,*) '** WARNING (intra_scatByLATA) **  cnt =',cnt   ! debug
 		write(*,*) '** WARNING 4 (intra_scatByLATA) **  cnt =',cnt
-!			write(*,*) abs(kx),abs(ky),abs(kz), PQMAX/hbar,eee,q0  ! debug
-!			write(8,*) abs(kx),abs(ky),abs(kz), PQMAX/hbar,eee,q0  ! debug
 !			     /***** compute ISOTROPIC new angles if all else fails above ******/
 !       -- begin    once for while
-		calp = 1.0-2.0*grnd()
-		salp = sqrt(1.0-calp*calp)
-		bet = 2.0*pi*grnd()
+		calp = 1.d0-2.d0*grnd()
+		salp = sqrt(1.d0-calp*calp)
+		bet = 2.d0*pi*grnd()
 !			    /********** compute new isotropic momentum components *************/
 		kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pprime*salp*cos(bet))/hbar
 		ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pprime*salp*sin(bet))/hbar
@@ -1396,9 +1366,9 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !			do while ((fabs(Elec[Pxyz][j]) > PQMAX) && (BZCLIP))     ! <38>{
 		cnt=1				!! debug
 		do while ((Pxyz > PQMAX) .AND. (BZCLIP==1))   ! <38>{
-			calp = 1.-2.*grnd()
-			salp = sqrt(1.-calp*calp)
-			bet = 2.*pi*grnd()
+			calp = 1.d0-2.d0*grnd()
+			salp = sqrt(1.d0-calp*calp)
+			bet = 2.d0*pi*grnd()
 !			  /********** compute new isotropic momentum components *************/
 			kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pprime*salp*cos(bet))/hbar
 			ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pprime*salp*sin(bet))/hbar
@@ -1436,7 +1406,7 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	integer ie
 	integer Pxyz
 	integer cnt2				!! debug
-	Double Precision, parameter:: ephon_convergence=0.05
+	Double Precision, parameter:: ephon_convergence=0.05d0
 !
 	cnt=0
 	REDO=1
@@ -1470,11 +1440,11 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !			#endif
 			BZCLIP=1   !!
 !				// compute new momentum in Herring-Vogt space
-			pp = sqrt(2.0*mdos*Ep*(1.0+alpha*Ep))
+			pp = sqrt(2.d0*mdos*Ep*(1.d0+alpha*Ep))
 !				// choose the set of random angles
-			calp = 1.0-2.0*grnd()
-			salp = sqrt(1.0-calp*calp)
-			bet = 2.0*pi*grnd()
+			calp = 1.d0-2.d0*grnd()
+			salp = sqrt(1.d0-calp*calp)
+			bet = 2.d0*pi*grnd()
 !				// new momentum components in new valley iv[j]
 			kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pp*salp*cos(bet))/hbar
 			ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pp*salp*sin(bet))/hbar
@@ -1489,9 +1459,9 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 			cnt2=1				!! debug
 			do while ((Pxyz > PQMAX) .AND. (BZCLIP==1)) 
 !				// choose the set of random angles
-				calp = 1.0-2.0*grnd()
-				salp = sqrt(1.0-calp*calp)
-				bet = 2.0*pi*grnd()
+				calp = 1.d0-2.d0*grnd()
+				salp = sqrt(1.d0-calp*calp)
+				bet = 2.d0*pi*grnd()
 !				// new momentum components in new valley iv[j]
 				kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pp*salp*cos(bet))/hbar
 				ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pp*salp*sin(bet))/hbar
@@ -1516,7 +1486,7 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 			dpy = hbar*ky-pyo
 			dpz = hbar*kz-pzo
 !				// get qphon = norm of the resultant q-vector reduced to 1st BZ
-			qphon = abs(2.0*PQMAX-sqrt(dpx*dpx + dpy*dpy + dpz*dpz))/hbar
+			qphon = abs(2.d0*PQMAX-sqrt(dpx*dpx + dpy*dpy + dpz*dpz))/hbar
 			if (qphon < QMIN) write(*,*) '** WARNING 6 inter_scat_g **: qphon < QMIN', qphon/QMAX
 !				// get resulting phonon energy and momentum
 			ephon = hbar*get_wq(qphon,LT) 
@@ -1552,9 +1522,9 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	if (ie > NBph) then
 		write(*,*) '** WARNING 8 ** too large ephon',ephon
 	else if (LT==LA .OR. LT==LO) then
-		NELph0(ie)=NELph0(ie)+aed*1.0d0
+		NELph0(ie)=NELph0(ie)+aed*1.d0
 	else if (LT==TA .OR. LT==TO) then
-		NETph0(ie)=NETph0(ie)+aed*1.0d0
+		NETph0(ie)=NETph0(ie)+aed*1.d0
 	end if
 !
 	qdum = qphon
@@ -1581,9 +1551,9 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	integer ie
 	integer Pxyz
 	integer cnt2				!! debug
-	Double Precision, parameter:: ephon_convergence=0.05
+	Double Precision, parameter:: ephon_convergence=0.05d0
 !    
-	EX=0.0
+	EX=0.d0
 	cnt=0
 	REDO=1
   
@@ -1633,11 +1603,11 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !			#endif
       		BZCLIP=1   !!
 !	  			// compute new momentum in Herring-Vogt space
-			pp = sqrt(2.*mdos*Ep*(1.+alpha*Ep))
+			pp = sqrt(2.d0*mdos*Ep*(1.d0+alpha*Ep))
 !				// choose the set of random angles
-			calp = 1.0-2.0*grnd()
-			salp = sqrt(1.0-calp*calp)
-			bet = 2.0*pi*grnd()
+			calp = 1.d0-2.d0*grnd()
+			salp = sqrt(1.d0-calp*calp)
+			bet = 2.d0*pi*grnd()
 !				// new momentum components in new valley iv[j]
 			kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pp*salp*cos(bet))/hbar
 			ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pp*salp*sin(bet))/hbar
@@ -1652,9 +1622,9 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 			cnt2=1				!! debug
 			do while ((Pxyz > PQMAX) .AND. (BZCLIP==1))
 !				// choose the set of random angles
-				calp = 1.0-2.0*grnd()
-				salp = sqrt(1.0-calp*calp)
-				bet = 2.0*pi*grnd()
+				calp = 1.d0-2.d0*grnd()
+				salp = sqrt(1.d0-calp*calp)
+				bet = 2.d0*pi*grnd()
 !				// new momentum components in new valley iv[j]
 				kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pp*salp*cos(bet))/hbar
 				ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pp*salp*sin(bet))/hbar
@@ -1718,9 +1688,9 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	if (ie > NBph) then
 		write(*,*) '** WARNING 12 ** too large ephon',ephon
 	else if (LT==LA .OR. LT==LO) then
-		NELph0(ie)=NELph0(ie)+aed*1.0d0
+		NELph0(ie)=NELph0(ie)+aed*1.d0
 	else if (LT==TA .OR. LT==TO) then
-		NETph0(ie)=NETph0(ie)+aed*1.0d0
+		NETph0(ie)=NETph0(ie)+aed*1.d0
 	end if
 !
 	qdum = qphon
@@ -1760,12 +1730,12 @@ subroutine change_noneq_valley(ivv)
 !
 	r = grnd()
 	if      ((ivv == 1) .OR. (ivv == 2))  then
-		ivv=3+int(4.0*r)  ! ivv = 1 or 2 -> {3,4,5,6}
+		ivv=3+int(4.d0*r)  ! ivv = 1 or 2 -> {3,4,5,6}
 	else if ((ivv == 3) .OR. (ivv == 4))  then    ! ivv = 3 or 4 -> {1,2}{5,6}
-		ivv = 1 + int(4.0*r)
+		ivv = 1 + int(4.d0*r)
 		if (ivv > 2) ivv= ivv+2
 	else 
-		ivv = 1 + int(4.0*r)
+		ivv = 1 + int(4.d0*r)
 	end if                                        ! ivv = 5 or 6 -> {1,2,3,4}
 end subroutine change_noneq_valley
 !========================================================================================
@@ -1777,11 +1747,11 @@ subroutine final_state_impurity_scat(kx,ky,kz,eee,ivv)
 	integer BZCLIP, cnt
 !
 	BZCLIP=1   !!
-	pprime = sqrt(2.0*mdos*eee*(1.+alpha*eee)) !
+	pprime = sqrt(2.d0*mdos*eee*(1.d0+alpha*eee)) !
 !
-	calp = 1.0-2.0*grnd()
-	salp = sqrt(1.0-calp*calp)
-	bet = 2.0*pi*grnd()
+	calp = 1.d0-2.d0*grnd()
+	salp = sqrt(1.d0-calp*calp)
+	bet = 2.d0*pi*grnd()
 	kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pprime*salp*cos(bet))/hbar
 	ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pprime*salp*sin(bet))/hbar
 	kz = (pvz(ivv) + sqrt(mz(ivv)/mdos)*pprime*calp)/hbar
@@ -1795,9 +1765,9 @@ subroutine final_state_impurity_scat(kx,ky,kz,eee,ivv)
 	end if
 !
 	do while ((Pxyz > PQMAX) .AND. (BZCLIP==1)) 
-		calp = 1.0-2.0*grnd()
-		salp = sqrt(1.0-calp*calp)
-		bet = 2.0*pi*grnd()
+		calp = 1.d0-2.d0*grnd()
+		salp = sqrt(1.d0-calp*calp)
+		bet = 2.d0*pi*grnd()
 		kx = (pvx(ivv) + sqrt(mx(ivv)/mdos)*pprime*salp*cos(bet))/hbar
 		ky = (pvy(ivv) + sqrt(my(ivv)/mdos)*pprime*salp*sin(bet))/hbar
 		kz = (pvz(ivv) + sqrt(mz(ivv)/mdos)*pprime*calp)/hbar
@@ -1834,11 +1804,11 @@ subroutine out(t,Elec,iv)
 !
 !---( 平均速度と距離とエネルギー保存の計算 )---
 !
-	ve = 0.0
-	eee = 0.0d0   ! debug
-	s = 0.0
-	eeeLost=0.0
-	eeeMin=999.0
+	ve = 0.d0
+	eee = 0.d0   ! debug
+	s = 0.d0
+	eeeLost=0.d0
+	eeeMin=999.d0
 	do  n=1,inum
 		ivv  = iv(n)
 		kx = (Elec(n,PX) - pvx(ivv))/hbar   ! Local kx
@@ -1855,7 +1825,7 @@ subroutine out(t,Elec,iv)
 			kk = (kx/tm(2))**2+(ky/tm(3))**2+(kz/tm(1))**2  ! debug
 		end if
 !
-		ve = ve + kx*hm((ivv-1)/2+1)/sqrt(1.0+4.0*alpha*gk) 
+		ve = ve + kx*hm((ivv-1)/2+1)/sqrt(1.d0+4.d0*alpha*gk) 
 !			eee = eee+kk                              ! debug
 		eee = eee + Elec(n,EE)
 		if (Elec(n,EE) < eeeMin) eeeMin=Elec(n,EE)
@@ -1926,7 +1896,7 @@ subroutine energy_dist(Elec)
 		ehist(n)=0
 	end do
 !
-!			eemax = 0.01   ! Debug fine division  10meV/300div -> 0.03meV/div
+!			eemax = 0.01d0   ! Debug fine division  10meV/300div -> 0.03meV/div
 	do  n=1,inum
 		digitized_energy=int(real(nhist-1)*(Elec(n,EE)/eemax))+1
 		if (digitized_energy <= nhist) then
@@ -1961,7 +1931,7 @@ program main
 	integer, allocatable::iv(:)
 	integer inum_dummy, i
 	integer, parameter::NBph=280	!	2018.10.29 280->1000
-	Double Precision, parameter::DEph=70.e-3/NBph	!	2.5e-4  ! 70meV/280div
+	Double Precision, parameter::DEph=70.d-3/float(NBph)	!	2.5e-4  ! 70meV/280div
 	Double Precision, allocatable ::NELph0(:), NETph0(:)
 	Double Precision :: t1, t2
 !
@@ -1988,8 +1958,8 @@ program main
 !		call energy_dist(Elec)                    !  初期エネルギー分布出力
 !		call out(t,Elec,iv)                         !  debug
 	do i=1,NBph
-		NELph0(i)=0.0d0
-		NETph0(i)=0.0d0
+		NELph0(i)=0.d0
+		NETph0(i)=0.d0
 	end do
 !
 !---( 多粒子モンテカルロ計算 )---
@@ -2001,19 +1971,19 @@ program main
 !
 !---( フォノンの頻度分布 )---
 	do i=1,NBph
-		NELph0(i)=NELph0(i)*(1.0E17/inum_dummy)*(1/SimTime)
-		NETph0(i)=NETph0(i)*(1.0E17/inum_dummy)*(1/SimTime)
+		NELph0(i)=NELph0(i)*(1.0d17/inum_dummy)*(1/SimTime)
+		NETph0(i)=NETph0(i)*(1.0d17/inum_dummy)*(1/SimTime)
 		write (*,*) i, dble(i)*DEph,NELph0(i),NETph0(i)
 		write (8,*) i, dble(i)*DEph,NELph0(i),NETph0(i)
 	end do
 !      
 !---( ファイルのクローズ )---
 !
-	close(5)
-	close(8)
-	deallocate(Elec,iv)
 	call cpu_time( t2 )
 	write(*,*) 'cpu time:', t2-t1, 'seconds.'
 	write(8,*) 'cpu time:', t2-t1, 'seconds.'
+	deallocate(Elec,iv)
+	close(5)
+	close(8)
 	stop
 end program main
