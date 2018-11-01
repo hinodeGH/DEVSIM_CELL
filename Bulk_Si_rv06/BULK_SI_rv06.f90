@@ -806,9 +806,9 @@ subroutine param
 !		else
 !			eee = de*float(ie-1)
 !		end if
-!		write (*,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+!		write (*,'(18E22.15)') eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
 !				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie),swk(18,ie)
-!		write (8,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+!		write (8,'(18E22.15)') eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
 !				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie),swk(18,ie)
 !	end do
 !!------ debug scattering rate end -------
@@ -834,17 +834,17 @@ subroutine param
 !----- debug scattering rate begin ------
 	write (*,*) 'total scattering rate=',gm
 	write (8,*) 'total scattering rate=',gm
-!!      do  ie=1,iemax
-!!        if (ie == 1) then
-!!				eee = EMIN
-!!			else
-!!				eee = de*float(ie-1)
-!!			end if
-!!         write (*,*) eee,swk(1,ie),swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
-!!                    &     swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
-!!         write (8,*) eee,swk(1,ie),swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
-!!                    &     swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
-!!      end do
+!	do  ie=1,iemax
+!		if (ie == 1) then
+!				eee = EMIN
+!			else
+!				eee = de*float(ie-1)
+!		end if
+!		write (*,'(19E22.15)') eee,swk(1,ie),swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+!			&     swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie),swk(18,ie)
+!		write (8,'(19E22.15)') eee,swk(1,ie),swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+!			&     swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie),swk(18,ie)
+!	end do
 !!------ debug scattering rate end -------
 !
 end subroutine param
@@ -934,8 +934,8 @@ subroutine initia(t,Elec,iv)
 		Elec(n,EE)=(sqrt(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)  ! Tomizawa (1.7)
 !
 !         if (n<=100) then   ! debug
-!           write(*,*) n,Elec(n,PX),Elec(n,PY),Elec(n,PZ)  ! debug
-!           write(8,*) n,Elec(n,PX),Elec(n,PY),Elec(n,PZ)  ! debug
+!           write(*,'(i10,3E22.15)') n,Elec(n,PX),Elec(n,PY),Elec(n,PZ)  ! debug
+!           write(8,'(i10,3E22.15)') n,Elec(n,PX),Elec(n,PY),Elec(n,PZ)  ! debug
 !         end if
 !
 	end do
@@ -1234,8 +1234,8 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 		acost = fabs_cost(q0,ki,eee,LT,aed)
 		cnt=cnt+1								! debug
 		if (mod(cnt,100000)==0) then			! debug
-			write(*,*) 'cnt=',cnt,'eee=',eee,'acost=',acost,'LT=',LT,'aed=',aed    ! debug
-			write(8,*) 'cnt=',cnt,'eee=',eee,'acost=',acost,'LT=',LT,'aed=',aed    ! debug
+			write(*,'(A,i10,2(A,E22.15),A,i10,A,E22.15)') 'cnt=',cnt,'eee=',eee,'acost=',acost,'LT=',LT,'aed=',aed    ! debug
+			write(8,'(A,i10,2(A,E22.15),A,i10,A,E22.15)') 'cnt=',cnt,'eee=',eee,'acost=',acost,'LT=',LT,'aed=',aed    ! debug
 		end if
 	end do
 !               
@@ -1265,8 +1265,8 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !
 	if (abs(cbet) > 1.0) then
 		write(*,*) 'error abs(cbet) > 1.0'
-		write(*,*) 'ki=',ki,' kprime=',kprime,' q0=',q0,' cbet=',cbet    !debug
-		write(8,*) 'ki=',ki,' kprime=',kprime,' q0=',q0,' cbet=',cbet    !debug
+		write(*,'(4(A,E22.15))') 'ki=',ki,' kprime=',kprime,' q0=',q0,' cbet=',cbet    !debug
+		write(8,'(4(A,E22.15))') 'ki=',ki,' kprime=',kprime,' q0=',q0,' cbet=',cbet    !debug
 !		 	 exit(-1)
 		stop
 	end if
@@ -1275,8 +1275,8 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	cgam = (hbar*kz-pvz(ivv))*sqrt(mdos/mz(ivv))/(hbar*ki)
 	if (abs(cgam) > 1.0) then
 		write(*,*) 'error abs(cgam) > 1.0'
-		write(*,*) 'cbet=',cbet,' sbet=',sbet,' cgam=',cgam    !debug
-		write(8,*) 'cbet=',cbet,' sbet=',sbet,' cgam=',cgam    !debug
+		write(*,'(3(A,E22.15))') 'cbet=',cbet,' sbet=',sbet,' cgam=',cgam    !debug
+		write(8,'(3(A,E22.15))') 'cbet=',cbet,' sbet=',sbet,' cgam=',cgam    !debug
 !	 			 exit(-1)
 		stop
 	end if
@@ -1315,8 +1315,8 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	end if
 !		end   once for while
 !		do while ((abs(Elec[Pxyz][j]) > PQMAX) && (cnt < 200) && (BZCLIP)) ! <37>{
-!			write(*,*) abs(kx),abs(ky),abs(kz), PQMAX/hbar  ! debug
-!			write(8,*) abs(kx),abs(ky),abs(kz), PQMAX/hbar  ! debug
+!			write(*,'(4E22.15)') abs(kx),abs(ky),abs(kz), PQMAX/hbar  ! debug
+!			write(8,'(4E22.15)') abs(kx),abs(ky),abs(kz), PQMAX/hbar  ! debug
 !!		do while ((MAX(abs(kx),abs(ky),abs(kz)) > PQMAX/hbar) .AND. (cnt < 200) .AND. (BZCLIP==1))  ! <37>{
 	do while ((Pxyz > PQMAX) .AND. (cnt < 200) .AND. (BZCLIP==1))
 !			/*** rotation phi chosen at random ***/
@@ -1838,8 +1838,8 @@ subroutine out(t,Elec,iv)
 	s  = s /float(inum)
 !
 !---( 時間 vs 平均速度 vs 距離の出力 )---
-	write(*,*) t,s,ve,eee,eeeLost,eeeMin,Egetlost_scat,Egetlost_drift
-	write(8,*) t,s,ve,eee,eeeLost,eeeMin,Egetlost_scat,Egetlost_drift
+	write(*,'(8(E22.15,A))') t,' ',s,' ',ve,' ',eee,' ',eeeLost,' ',eeeMin,' ',Egetlost_scat,' ',Egetlost_drift
+	write(8,'(8(E22.15,A))') t,' ',s,' ',ve,' ',eee,' ',eeeLost,' ',eeeMin,' ',Egetlost_scat,' ',Egetlost_drift
 end subroutine out
 !  
 !========================================================================================
@@ -1910,8 +1910,8 @@ subroutine energy_dist(Elec)
 	write(8,*) 'Emax=',eemax, '  particle#', iemax ! debug
 !
 	do n=1,nhist
-!			write(*,*) real(n)/real(nhist)*eemax,'  ',ehist(n)
-		write(8,*) real(n)/real(nhist)*eemax,'  ',ehist(n)
+		write(*,'(E22.15,A,i10)') real(n)/real(nhist)*eemax,' ',ehist(n)
+		write(8,'(E22.15,A,i10)') real(n)/real(nhist)*eemax,' ',ehist(n)
 	end do       
 !		deallocate(eee)
 	deallocate(ehist)
@@ -1973,8 +1973,8 @@ program main
 	do i=1,NBph
 		NELph0(i)=NELph0(i)*(1.0d17/inum_dummy)*(1/SimTime)
 		NETph0(i)=NETph0(i)*(1.0d17/inum_dummy)*(1/SimTime)
-		write (*,*) i, dble(i)*DEph,NELph0(i),NETph0(i)
-		write (8,*) i, dble(i)*DEph,NELph0(i),NETph0(i)
+		write (*,'(i10,3(A,E22.15))') i,' ',dble(i)*DEph,' ',NELph0(i),' ',NETph0(i)
+		write (8,'(i10,3(A,E22.15))') i,' ',dble(i)*DEph,' ',NELph0(i),' ',NETph0(i)
 	end do
 !      
 !---( ファイルのクローズ )---
