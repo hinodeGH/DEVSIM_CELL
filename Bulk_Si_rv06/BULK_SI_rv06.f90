@@ -36,6 +36,9 @@
 !					All Tom scattering processes were replaced by Pop processes (#1-17 except ion scat)
 !	   2018.10.24
 !					Elec(i,EElost=10)
+! rv06 2018.11.
+!					ion scattering
+!					option M_random_number or N_random_number; select by use sentence
 !===( 乱数発生関数 )=== 
 ! 2018.08.16 rnd() -> system random number:call random_number()
 ! 2018.08.23 rv04  -> Mersenne random number: call grnd()
@@ -124,6 +127,7 @@ Double Precision function gasdev() !gaussian random number:Box Muller's method
 	integer :: iset=0   ! 0 setting is only once at first function call
 	Double Precision gset
 	Double Precision  fac,rsq,v1,v2
+	SAVE iset, gset
 	integer cnt				!! debug
 !
 	if  (iset == 0) then
@@ -205,6 +209,7 @@ Double Precision function gasdev() !gaussian random number:Box Muller's method
 	integer :: iset=0   ! 0 setting is only once at first function call
 	Double Precision gset
 	Double Precision  fac,rsq,v1,v2
+	SAVE iset, gset
 	integer cnt				!! debug
 !
 	if  (iset == 0) then
@@ -291,7 +296,7 @@ module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 !		from Tom_global_variables   !----- 共通変数 -----
 	Double Precision dt,Temp,fx
 	Double Precision de
-	Double Precision :: swk(18,3002)=0.d0
+	Double Precision :: swk(18,3002)=0.d0	!	3002 ->x5=15010
 	Double Precision mdos      
 	Double Precision gm                 
 	Double Precision smh,hhml,hhmt         
@@ -310,14 +315,14 @@ module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 !
 	Double Precision Doping
 	Double Precision Egetlost_scat, Egetlost_drift		!	Energy conservation
-	
 !
+	integer, parameter::BZCLIP=0
 end module Tom2Pop_sub_program_variables
 !****************************************************************************************
 module Pop_sub_programs
 	use Tom2Pop_sub_program_variables
-!	use M_random_number
-	use N_random_number
+	use M_random_number
+!	use N_random_number
 	implicit none
 	contains
 !--------------- 以下に次のsubroutine/function ------------
@@ -427,8 +432,8 @@ Double Precision function find_root(q1, q2, k, E, lt, aed)
 		end if
 		cnt=cnt+1				!! debug
 		if (cnt==10000) then				!! debug
-			write(*,*) 'gasdev while cnt=', cnt				!! debug
-			write(8,*) 'gasdev while cnt=', cnt				!! debug
+			write(*,*) 'find_root while cnt=', cnt				!! debug
+			write(8,*) 'find_root while cnt=', cnt				!! debug
 		end if				!! debug
 	end do
 	if (fs < 0.) then
@@ -548,8 +553,8 @@ end module Pop_sub_programs
 !========================================================================================
 module Tom_sub_programs
 	use Tom2Pop_sub_program_variables
-!	use M_random_number
-	use N_random_number
+	use M_random_number
+!	use N_random_number
 	use Pop_sub_programs
 	implicit none
 	contains
@@ -627,7 +632,6 @@ subroutine param
 	Double Precision eee
 	integer ie, i
 !
-!!	Double Precision,parameter::pi = 3.14159265        !π
 !
 	Double Precision,parameter::q = 1.d0               ! e
 	Double Precision,parameter::echarge = 1.d0		!  // electron charge 
@@ -671,15 +675,15 @@ subroutine param
 !
 	mdos  = (ml*mt*mt)**(1.d0/3.d0) !相乗平均 effective m 0.328?
 	amc  = 3.d0/(1.d0/ml+2.d0/mt)!逆数相加平均 effective m at B edge 0.266?
-	tm(1)=sqrt(ml/mdos) !縦 1.67
-	tm(2)=sqrt(mt/mdos) !横 0.773
-	tm(3)=sqrt(mt/mdos) !横 0.773
-	smh  = sqrt(2.d0*mdos*echarge)/hbar    ! h->hbar
-	hhml = hbar/ml/echarge*hbar/2.d0 !縦 ! h->hbar
-	hhmt = hbar/mt/echarge*hbar/2.d0 !横 ! h->hbar
-	hm(1)= hbar/ml !縦 ! h->hbar
-	hm(2)= hbar/mt !横 ! h->hbar
-	hm(3)= hbar/mt !横 ! h->hbar
+	tm(1)=sqrt(ml/mdos)		!	縦 1.67
+	tm(2)=sqrt(mt/mdos)		!	横 0.773
+	tm(3)=sqrt(mt/mdos)		!	横 0.773
+	smh  = sqrt(2.d0*mdos*echarge)/hbar		!	h->hbar
+	hhml = hbar/ml/echarge*hbar/2.d0		!	縦 ! h->hbar
+	hhmt = hbar/mt/echarge*hbar/2.d0		!	横 ! h->hbar
+	hm(1)= hbar/ml		!	縦 ! h->hbar
+	hm(2)= hbar/mt		!	横 ! h->hbar
+	hm(3)= hbar/mt		!	横 ! h->hbar
 !
 !---( バンドの非放物線性 )---
 !
@@ -731,8 +735,8 @@ subroutine param
 	ELAg = hbar*get_wq(QGp*QMAX,LA)     ! // ~ 19 meV
 	ELOg = hbar*get_wq(QGp*QMAX,LO)     ! // ~ 64 meV
 !
-	de=0.0005d0   ! energy step  ! Tom(2meV)->Pop(0.5meV)
-	iemax=MIN(3002,nint(EMAX/de)+2)	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3002div)
+	de=0.0005d0   ! energy step  ! Tom(2meV)->Pop(0.5meV) ->0.1meV
+	iemax=MIN(3002,nint(EMAX/de)+2)	!  Tom(0-2eV;1000div)->Pop(0-1.5eV;3002div) 3002->15010
 !
 	do ie=1,iemax
 !				ei=de*float(ie) ! energy table: de ~ de*iemax
@@ -796,6 +800,22 @@ subroutine param
 !
 !=====[ イオン化不純物散乱  }===== Pop scattering type #18
 		swk(18,ie)= rateDOP(ei)
+!
+!!! debug
+!	swk(8,ie)= 0.d0		!	f TO	debug
+!	swk(9,ie)= 0.d0		!	f TO	debug
+!	swk(12,ie)= 0.d0	!	f LA	debug
+!	swk(13,ie)= 0.d0	!	f LA	debug
+!	swk(14,ie)= 0.d0	!	f TA	debug
+!	swk(15,ie)= 0.d0	!	f TA	debug
+!	
+!	swk(6,ie)= 0.d0		!	g LO	debug
+!	swk(7,ie)= 0.d0		!	g LO	debug
+!	swk(10,ie)= 0.d0	!	g TA	debug
+!	swk(11,ie)= 0.d0	!	g TA	debug
+!	swk(16,ie)= 0.d0	!	g LA	debug
+!	swk(17,ie)= 0.d0	!	g LA	debug
+!!! debug
 !
 	end do
 !        
@@ -861,17 +881,26 @@ subroutine initia(t,Elec,iv)
 	integer n
 	Double Precision kx, ky, kz, gk
 	integer MBdist  ! 1:initial=Maxwell-Boltzman distribution
+	integer ReDo
 !
 	t=0.d0
-	call sgrnd(-99)                    !乱数 seed=1
-	MBdist=1
-!!	MBdist=0
+	call sgrnd(-99)                    !乱数 seed=1 -> -99
 	do  n=1,inum
+!!		write(*,*) 'gasdev ',gasdev(),' grnd ',grnd()		!	debug
+!!		write(8,*) 'gasdev ',gasdev(),' grnd ',grnd()		!	debug
+	end do
+	MBdist=1		!	Maxwell-Boltzman distribution
+!!	MBdist=0		!	approximate Tom(?) distribution
+!
+	do  n=1,inum
+		ReDO=0	
 !--------------------------------------------- begin isotropic Maxwell-Boltzman(Pop)
 		if (MBdist == 1) then
 			kx = smh*sqrt(kbTq/2.d0)*gasdev()    ! Local kx
 			ky = smh*sqrt(kbTq/2.d0)*gasdev()    ! Local ky
 			kz = smh*sqrt(kbTq/2.d0)*gasdev()    ! Local kz
+!!			write(*,*) kx,ky,kz			!debug
+!!			write(8,*) kx,ky,kz			!debug
 !--------------------------------------------- begin isotropic initial p (Tom)
 		else
 			rn = grnd()
@@ -896,49 +925,131 @@ subroutine initia(t,Elec,iv)
 		Elec(n,YYY) = 0.d0 ! y
 !
 		rn = grnd()
-		r3=3.*rn
+		r3=3.d0*rn
 		if (r3 <= 1.0) then
 			if (r3 <=0.5) then
 				iv(n)=1 !  第１バンド（valley at -X-axis)
 			else
-				iv(n)=2 !  第１バンド（valley at +X-axis)
+				iv(n)=2 !  第２バンド（valley at +X-axis)
 			end if
 !
 			Elec(n,PX)=tm(1)*hbar*kx + pvx(iv(n)) ! 縦 Global px
+			if ( ABS(Elec(n,PX)) >=PQMAX .AND. BZCLIP==1 ) ReDO=1
 			Elec(n,PY)=tm(2)*hbar*ky + pvy(iv(n)) ! 横 Global py
 			Elec(n,PZ)=tm(3)*hbar*kz + pvz(iv(n)) ! 横 Global pz
 			gk=hhml*kx**2+hhmt*(ky**2+kz**2)
 		elseif (r3 <= 2.0) then
 			if (r3 <=1.5) then
-				iv(n)=3 !  第２バンド（valley at -Y-axis)
+				iv(n)=3 !  第３バンド（valley at -Y-axis)
 			else
-				iv(n)=4 !  第２バンド（valley at +Y-axis)
+				iv(n)=4 !  第４バンド（valley at +Y-axis)
 			end if
 !
 			Elec(n,PX)=tm(3)*hbar*kx + pvx(iv(n)) ! 横 Global px
 			Elec(n,PY)=tm(1)*hbar*ky + pvy(iv(n)) ! 縦 Global py
+			if ( ABS(Elec(n,PY)) >=PQMAX .AND. BZCLIP==1 ) ReDO=1
 			Elec(n,PZ)=tm(2)*hbar*kz + pvz(iv(n)) ! 横 Global pz
 			gk=hhml*ky**2+hhmt*(kz**2+kx**2)           
 		else
 			if (r3 <=2.5) then
-				iv(n)=5 !  第３バンド（valley at -Z-axis)
+				iv(n)=5 !  第５バンド（valley at -Z-axis)
 			else
-				iv(n)=6 !  第３バンド（valley at +Z-axis)
+				iv(n)=6 !  第６バンド（valley at +Z-axis)
 			end if
 !
 			Elec(n,PX)=tm(2)*hbar*kx + pvx(iv(n)) ! 横 Global px
 			Elec(n,PY)=tm(3)*hbar*ky + pvy(iv(n)) ! 横 Global py
 			Elec(n,PZ)=tm(1)*hbar*kz + pvz(iv(n)) ! 縦 Global pz
+			if ( ABS(Elec(n,PZ)) >=PQMAX .AND. BZCLIP==1 ) ReDO=1
 			gk=hhml*kz**2+hhmt*(kx**2+ky**2)
 		end if
 		Elec(n,EE)=(sqrt(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)  ! Tomizawa (1.7)
 !
-!         if (n<=100) then   ! debug
-!           write(*,'(i10,3E22.15)') n,Elec(n,PX),Elec(n,PY),Elec(n,PZ)  ! debug
-!           write(8,'(i10,3E22.15)') n,Elec(n,PX),Elec(n,PY),Elec(n,PZ)  ! debug
-!         end if
+		do while(ReDo==1)
+			ReDO=0	
+!--------------------------------------------- begin isotropic Maxwell-Boltzman(Pop)
+			if (MBdist == 1) then
+				kx = smh*sqrt(kbTq/2.d0)*gasdev()    ! Local kx
+				ky = smh*sqrt(kbTq/2.d0)*gasdev()    ! Local ky
+				kz = smh*sqrt(kbTq/2.d0)*gasdev()    ! Local kz
+!!				write(*,*) kx,ky,kz			!debug
+!!				write(8,*) kx,ky,kz			!debug
+!--------------------------------------------- begin isotropic initial p (Tom)
+			else
+				rn = grnd()
+!!						write(*,*)ran1_idum,rn		!!	debud
+!!						write(8,*)ran1_idum,rn		!!	debud
+				ei  = -kbTq*log(rn)*1.5d0    !--- give E along exp{-E/(3/2kT)} ~39meV @300K
+				ak  = smh*sqrt(ei*(1.d0+alpha*ei)) !--- E -> k
+				rn = grnd()
+				cb  = 1.d0-2.d0*rn ! cosθ
+				sb  = sqrt(1.d0-cb*cb) ! sinθ
+				rn = grnd()
+				fai = 2.d0*pi*rn ! Φ
+				sf  = sin(fai)
+				kx = ak*cb*sf    ! Local kx
+				ky = ak*sb*sf    ! Local ky
+				kz = ak*cos(fai) ! Local kz
+			end if
+!--------------------------------------------- end isotropic initial k
+			rn = grnd()
+			Elec(n,TS) = -log(rn)/gm         ! mean free time along exp(-t/gm)
+			Elec(n,XXX) = 0.d0 ! x
+			Elec(n,YYY) = 0.d0 ! y
 !
-	end do
+			rn = grnd()
+			r3=3.d0*rn
+			if (r3 <= 1.0) then
+				if (r3 <=0.5) then
+					iv(n)=1 !  第１バンド（valley at -X-axis)
+				else
+					iv(n)=2 !  第２バンド（valley at +X-axis)
+				end if
+!
+				Elec(n,PX)=tm(1)*hbar*kx + pvx(iv(n)) ! 縦 Global px
+				if ( ABS(Elec(n,PX)) >=PQMAX .AND. BZCLIP==1 ) ReDO=1
+				Elec(n,PY)=tm(2)*hbar*ky + pvy(iv(n)) ! 横 Global py
+				Elec(n,PZ)=tm(3)*hbar*kz + pvz(iv(n)) ! 横 Global pz
+				gk=hhml*kx**2+hhmt*(ky**2+kz**2)
+			elseif (r3 <= 2.0) then
+				if (r3 <=1.5) then
+					iv(n)=3 !  第３バンド（valley at -Y-axis)
+				else
+					iv(n)=4 !  第４バンド（valley at +Y-axis)
+				end if
+!
+				Elec(n,PX)=tm(3)*hbar*kx + pvx(iv(n)) ! 横 Global px
+				Elec(n,PY)=tm(1)*hbar*ky + pvy(iv(n)) ! 縦 Global py
+				if ( ABS(Elec(n,PY)) >=PQMAX .AND. BZCLIP==1 ) ReDO=1
+				Elec(n,PZ)=tm(2)*hbar*kz + pvz(iv(n)) ! 横 Global pz
+				gk=hhml*ky**2+hhmt*(kz**2+kx**2)           
+			else
+				if (r3 <=2.5) then
+					iv(n)=5 !  第５バンド（valley at -Z-axis)
+				else
+					iv(n)=6 !  第６バンド（valley at +Z-axis)
+				end if
+!
+				Elec(n,PX)=tm(2)*hbar*kx + pvx(iv(n)) ! 横 Global px
+				Elec(n,PY)=tm(3)*hbar*ky + pvy(iv(n)) ! 横 Global py
+				Elec(n,PZ)=tm(1)*hbar*kz + pvz(iv(n)) ! 縦 Global pz
+				if ( ABS(Elec(n,PZ)) >=PQMAX .AND. BZCLIP==1 ) ReDO=1
+				gk=hhml*kz**2+hhmt*(kx**2+ky**2)
+			end if
+			Elec(n,EE)=(sqrt(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)  ! Tomizawa (1.7)
+
+		end do		!	do while(ReDO)
+!
+!!		write(*,'(2(i10,A),4(E22.15,A))') n,' ',iv(n),' ',Elec(n,EE),' ',Elec(n,PX),' ',Elec(n,PY),' ',Elec(n,PZ)  ! debug
+!!		write(8,'(2(i10,A),4(E22.15,A))') n,' ',iv(n),' ',Elec(n,EE),' ',Elec(n,PX),' ',Elec(n,PY),' ',Elec(n,PZ)  ! debug
+!!
+!!		write(*,*) (Elec(n,PX)-pvx(iv(n)))/hbar,(Elec(n,PY)-pvy(iv(n)))/hbar,(Elec(n,PZ)-pvz(iv(n)))/hbar,Elec(n,EE),iv(n)	!debug
+!!		write(8,*) (Elec(n,PX)-pvx(iv(n)))/hbar,(Elec(n,PY)-pvy(iv(n)))/hbar,(Elec(n,PZ)-pvz(iv(n)))/hbar,Elec(n,EE),iv(n)	!debug
+!
+!!		write(*,*) Elec(n,PX)/hbar,Elec(n,PY)/hbar,Elec(n,PZ)/hbar,Elec(n,EE),iv(n)	!debug
+!!		write(8,*) Elec(n,PX)/hbar,Elec(n,PY)/hbar,Elec(n,PZ)/hbar,Elec(n,EE),iv(n)	!debug
+!!		
+	end do		!	do  n=1,inum
 end subroutine initia
 !========================================================================================
 !===( 多粒子モンテカルロ計算：繰り返し )===
@@ -953,12 +1064,13 @@ subroutine monte_carlo(Elec,iv,NELph0,NETph0,NBph,DEph)
 	Double Precision t
 	integer jt
 !            
-	do jt=1,jtl
+!	do jt=1,jtl
+	do jt=0,jtl
 		t=dt*float(jt)
 		call emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 		write(*,'(i10)',advance = 'no') jt   ! iteration no
 		write(8,'(i10)',advance = 'no') jt   ! iteration no
-		call out(t,Elec,iv)              !  debug
+		call out(t,Elec,iv)
 	end do
 !
 end subroutine monte_carlo
@@ -978,6 +1090,8 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 	integer ,intent(in)::NBph
 	Double Precision, intent(in)::DEph
 	Double Precision eeeOLD			!	Energy conservation
+!!	Double Precision kxOLD, kyOLD, kzOLD		!	debug
+!!	integer ivvOLD								!	debug
 !
 	Egetlost_drift=0.d0			!	Energy conservation 
 	Egetlost_scat=0.d0				!	Energy conservation
@@ -997,10 +1111,30 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 		do while (tss <= tdt)          ! mean free time > elapsed time -> drift
 			tau=tss-t1                   ! time interval before scattering
 			eeeOLD=eee										!	Energy conservation
+!!			kxOLD=kx			!	debug
+!!			kyOLD=ky			!	debug
+!!			kzOLD=kz			!	debug
+!!			ivvOLD=ivv			!	debug
 			call drift(tau,kx,ky,kz,eee,x,y,ivv)
 			Egetlost_drift=Egetlost_drift+(eee-eeeOLD)		!	Energy conservation
+!!
+!!			if (tdt > dt*float(jtl)) then										!	debug
+!!			if (tdt <= dt) then													!	debug
+!!				write(*,*) 'drift1 ',ivv,kx,kxOLD,ky,kyOLD,kz,kzOLD,eee,eeeOLD	!	debug
+!!				write(8,*) 'drift1 ',ivv,kx,kxOLD,ky,kyOLD,kz,kzOLD,eee,eeeOLD	!	debug
+!!			end if
+!!
 			eeeOLD=eee			!	Energy conservation
+!!			kxOLD=kx			!	debug
+!!			kyOLD=ky			!	debug
+!!			kzOLD=kz			!	debug
+!!			ivvOLD=ivv			!	debug
 			call scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)
+!!			if (tdt > dt*float(jtl)) then										!	debug
+!!			if (tdt <= dt) then													!	debug
+!!				write(*,*) 'scat ',ivv,kx,kxOLD,ky,kyOLD,kz,kzOLD,eee,eeeOLD	!	debug
+!!				write(8,*) 'scat ',ivv,kx,kxOLD,ky,kyOLD,kz,kzOLD,eee,eeeOLD	!	debug
+!!			end if																!	debug
 			Egetlost_scat=Egetlost_scat+(eee-eeeOLD)		!	Energy conservation
 			t1=tss
 			rn = grnd()
@@ -1009,8 +1143,19 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
        !
 		tau=tdt-t1
 		eeeOLD=eee											!	Energy conservation
+!!		kxOLD=kx			!	debug
+!!		kyOLD=ky			!	debug
+!!		kzOLD=kz			!	debug
+!!		ivvOLD=ivv			!	debug
 		call drift(tau,kx,ky,kz,eee,x,y,ivv)
 		Egetlost_drift=Egetlost_drift+(eee-eeeOLD)			!	Energy conservation
+!!
+!!			if (tdt > dt*float(jtl)) then										!	debug
+!!			if (tdt <= dt) then													!	debug
+!!				write(*,*) 'drift2 ',ivv,kx,kxOLD,ky,kyOLD,kz,kzOLD,eee,eeeOLD	!	debug
+!!				write(8,*) 'drift2 ',ivv,kx,kxOLD,ky,kyOLD,kz,kzOLD,eee,eeeOLD	!	debug
+!!			end if
+!!
 !
 		Elec(n,PX) = hbar*kx    ! Global px
 		Elec(n,PY) = hbar*ky    ! Global py
@@ -1030,29 +1175,39 @@ end subroutine emc
 subroutine drift(tau,kx,ky,kz,eee,x,y,ivv)  ! Global kx, ky, kz
 	implicit none
 	Double Precision, intent(inout)::  tau, kx,ky,kz,eee,x,y
-	integer, intent(in):: ivv
+	integer, intent(inout):: ivv
 	Double Precision dkx, skx, sky, skz, cp, sq, gk
 !
 	dkx=qhbar*fx*tau ! dk=q/h・F・τ
 !
 	cp  = hm((ivv-1)/2+1)*tau               ! m/h・τ
-
-	gk = eee*(1.d0+alpha*eee)
-	sq = sqrt(1.d0+4.d0*alpha*gk)      !--- anisotropic & non-parabolic
-	x = x+cp*((kx-pvx(ivv)/hbar)+0.5d0*dkx)/sq   !--- dx=h/m・τ(kx +0.5・dkx)/sq
 !
-	kx=kx+dkx                   ! Global kx
-	skx=(kx-pvx(ivv)/hbar)**2   ! Local skx
-	sky=(ky-pvy(ivv)/hbar)**2   ! Local sky
-	skz=(kz-pvz(ivv)/hbar)**2   ! Local skz
-	if (ivv==1 .OR. ivv==2) then              ! --- after Tomizawa p.3-8
+	gk = eee*(1.d0+alpha*eee)	!	gk before drift
+	sq = sqrt(1.d0+4.d0*alpha*gk)      !--- anisotropic & non-parabolic
+!
+	x = x+cp*((kx-pvx(ivv)/hbar)+0.5d0*dkx)/sq   !--- dx=h/m・τ(kx +0.5・dkx)/sq
+	kx=kx+dkx							! Global kx
+!
+!	// reflect back to the first Brillouin zone & change valley index iv[] to opposite equivalent valley
+	if (BZCLIP==1 .AND. ivv==1 .AND. kx<-QMAX) then
+		kx=2.d0*QMAX + kx
+		ivv=2
+	else if (BZCLIP==1 .AND. ivv==2 .AND. kx>QMAX) then
+		kx=-2.d0*QMAX + kx
+		ivv=1
+	end if
+!
+	skx=(kx-pvx(ivv)/hbar)**2			! Local skx
+	sky=(ky-pvy(ivv)/hbar)**2			! Local sky
+	skz=(kz-pvz(ivv)/hbar)**2			! Local skz
+	if (ivv==1 .OR. ivv==2) then		! --- gk after drift (Tomizawa p.3-8)
 		gk=hhml*skx+hhmt*(sky+skz)
 	elseif (ivv==3 .OR. ivv==4) then
 		gk=hhml*sky+hhmt*(skz+skx)
 	else    ! ivv=5 or ivv=6
 		gk=hhml*skz+hhmt*(skx+sky)
 	end if
-	eee=(sqrt(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)            ! Tomizawa (1.7)
+	eee=(sqrt(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)		!	eee after drift (Tomizawa (1.7))
 !
 end subroutine drift
 !========================================================================================
@@ -1209,7 +1364,6 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	Double Precision qdum, edum, pprime, kprime
 	Double Precision cbet, sbet, cgam, sgam, cgamp, cgampp, eta, ceta, seta, phi, sphi, cphi
 	integer cnt
-	integer BZCLIP
 	Double Precision calp, salp, bet
 !!	Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
 	Double Precision, intent(inout)::NELph0(:),NETph0(:)
@@ -1305,7 +1459,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	kx = ((cbet*cgampp -sbet*cphi*cgam*seta +sbet*sphi*ceta)* &
 	   & sqrt(mx(ivv)/mdos)*pprime + pvx(ivv))/hbar
 	cnt=1   !! debug
-	BZCLIP=1      ! debug
+!
 	if (ivv==1 .OR. ivv==2) then
 		Pxyz=abs(kx)*hbar
 	else if (ivv==3 .OR. ivv==4) then
@@ -1318,7 +1472,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !			write(*,'(4E22.15)') abs(kx),abs(ky),abs(kz), PQMAX/hbar  ! debug
 !			write(8,'(4E22.15)') abs(kx),abs(ky),abs(kz), PQMAX/hbar  ! debug
 !!		do while ((MAX(abs(kx),abs(ky),abs(kz)) > PQMAX/hbar) .AND. (cnt < 200) .AND. (BZCLIP==1))  ! <37>{
-	do while ((Pxyz > PQMAX) .AND. (cnt < 200) .AND. (BZCLIP==1))
+	do while ((Pxyz > PQMAX) .AND. (cnt < 2000) .AND. (BZCLIP==1))
 !			/*** rotation phi chosen at random ***/
 		phi = 2.d0*pi*grnd()
 		sphi = sin(phi)
@@ -1343,7 +1497,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	end do    !  }<37> 
 !		  // if BZCLIP = 0 this && is always FALSE so it only goes thru ONCE
 !		  // if the counter exceeds 200 reps then make it isotropic
-	if (cnt > 200) then !  <39>{          // note:  this never happens if BZCLIP = 0
+	if (cnt > 2000) then !  <39>{          // note:  this never happens if BZCLIP = 0
 !		  if (cnt > 200) write(*,*) '** WARNING (intra_scatByLATA) **  cnt =',cnt   ! debug
 		write(*,*) '** WARNING 4 (intra_scatByLATA) **  cnt =',cnt
 !			     /***** compute ISOTROPIC new angles if all else fails above ******/
@@ -1363,7 +1517,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 		else if (ivv==5 .OR. ivv==6) then
 			Pxyz=abs(kz)*hbar
 		end if
-!			do while ((fabs(Elec[Pxyz][j]) > PQMAX) && (BZCLIP))     ! <38>{
+!
 		cnt=1				!! debug
 		do while ((Pxyz > PQMAX) .AND. (BZCLIP==1))   ! <38>{
 			calp = 1.d0-2.d0*grnd()
@@ -1396,7 +1550,7 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	Double Precision, intent(inout)::  kx,ky,kz,eee
 	Double Precision aed
 	integer ivv,LT
-	integer cnt, REDO, BZCLIP
+	integer cnt, REDO	
 	Double Precision ephon, ephon0, qphon, qphon0, Ep, bet, calp, salp
 	Double Precision pp, pxo, pyo, pzo, dpx, dpy, dpz, r
 	Double Precision qdum, edum
@@ -1438,7 +1592,6 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !			#ifdef POP
 		if (Ep > EMIN)  then   !  ⑤{
 !			#endif
-			BZCLIP=1   !!
 !				// compute new momentum in Herring-Vogt space
 			pp = sqrt(2.d0*mdos*Ep*(1.d0+alpha*Ep))
 !				// choose the set of random angles
@@ -1501,11 +1654,11 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 			ephon = hbar*get_wq(qphon,LT) 
 		end if
 !				// allow it to break out if cnt goes too high
-		if ((cnt > 200) .AND. (REDO > 0)) then
+		if ((cnt > 2000) .AND. (REDO > 0)) then
 			REDO = 0
 			qphon = QGp*QMAX
 			ephon = hbar*get_wq(qphon,LT)
-			if (cnt > 200) write(*,*) '** WARNING 7  inter_scat_g **  cnt =',cnt   ! debug
+			if (cnt > 2000) write(*,*) '** WARNING 7  inter_scat_g **  cnt =',cnt   ! debug
 		end if
 !				// empirical note: this happens VERY rarely so it's OK
 	end do
@@ -1532,16 +1685,15 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !			// consistent within 5% with the electron energy exchange [based on
 !			// ephon0] but here i'm keeping qphon + ephon for consistency within
 !			// the generated phonon statistics
+!
 end subroutine final_state_inter_scat_g
 !========================================================================================
 subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
 	implicit none
 	Double Precision, intent(inout)::  kx,ky,kz,eee
-!!	Double Precision, parameter:: EMIN = 1.e-10   ! @ Pop-definition
-!!	Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
 	Double Precision aed
 	integer ivv,LT
-	integer cnt, REDO, BZCLIP
+	integer cnt, REDO
 	Double Precision ephon, ephon0, qphon, Ep, bet, calp, salp
 	Double Precision pp, pxo, pyo, pzo, dpx, dpy, dpz, r, EX, E0
 	Double Precision qdum, edum
@@ -1556,7 +1708,7 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	EX=0.d0
 	cnt=0
 	REDO=1
-  
+!
 !		eee = E0  = Elec[EE][j]
 !		ivv = iv0 = iv[j]
 
@@ -1601,7 +1753,6 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !			#ifdef POP
 		if (Ep > EMIN) then    !	{
 !			#endif
-      		BZCLIP=1   !!
 !	  			// compute new momentum in Herring-Vogt space
 			pp = sqrt(2.d0*mdos*Ep*(1.d0+alpha*Ep))
 !				// choose the set of random angles
@@ -1667,11 +1818,11 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 			ephon = hbar*get_wq(qphon,LT)
 		end if
 !				// allow it to break out if cnt goes too high
-		if ((cnt > 200) .AND. (REDO > 0)) then
+		if ((cnt > 2000) .AND. (REDO > 0)) then
 			REDO = 0
 			qphon = QFp*QMAX
 			ephon = hbar*get_wq(qphon,LT)
-			if (cnt > 200) write(*,*) '** WARNING 11 inter_scat_f **  cnt =',cnt   ! debug
+			if (cnt > 2000) write(*,*) '** WARNING 11 inter_scat_f **  cnt =',cnt   ! debug
 		end if
 !				// empirical note: this happens VERY rarely so it's OK
     end do
@@ -1719,8 +1870,6 @@ subroutine change_equiv_valley(ivv)
 		ivv=5
 	end if  
 !
-!!  axis = (iv[j] + 1)/2
-!!  iv[j] = 4*axis - iv[j] - 1
 end subroutine change_equiv_valley
 !========================================================================================
 subroutine change_noneq_valley(ivv)
@@ -1744,9 +1893,8 @@ subroutine final_state_impurity_scat(kx,ky,kz,eee,ivv)
 	Double Precision, intent(inout)::  kx,ky,kz,eee
 	integer ivv
 	Double Precision pprime,calp,salp,bet,Pxyz
-	integer BZCLIP, cnt
+	integer cnt
 !
-	BZCLIP=1   !!
 	pprime = sqrt(2.d0*mdos*eee*(1.d0+alpha*eee)) !
 !
 	calp = 1.d0-2.d0*grnd()
@@ -1845,46 +1993,26 @@ end subroutine out
 !========================================================================================
 !===( エネルギー分布計算 )===
 !
-subroutine energy_dist(Elec)
+subroutine energy_dist(Elec,iv)
 	implicit none
-	Double Precision, intent(in)::Elec(:,:)
-!		integer, intent(in)::iv(:)
-!		Double Precision,allocatable ::eee(:)  ! energy of each particle
-!		Double Precision kx, ky, kz, gk
-!		Double Precision  kk                       !
+	Double Precision, intent(in)::Elec(:,:)                 !
 	integer n
+	integer, intent(in)::iv(:)
 !
 	integer, allocatable ::ehist(:)
 	integer:: nhist=301                !ヒストグラム分割数
 	integer digitized_energy, iemax
 	Double Precision eemax
 !
-!		allocate(eee(inum))
 	allocate(ehist(nhist))
 !      
 !---( 個々の粒子のエネルギー計算 )---
 !
 	eemax=0.d0                 ! do not use ::emax=0.d0
 	do  n=1,inum
-!         ivv  = iv(n)
-!         kx = (Elec(n,PX) - pvx(ivv))/hbar   ! Local kx
-!         ky = (Elec(n,PY) - pvy(ivv))/hbar   ! Local ky
-!         kz = (Elec(n,PZ) - pvz(ivv))/hbar   ! Local kz
-!        if (ivv==1 .OR. ivv==2) then                  ! x-direction // E field
-!            gk = hhml*kx**2 + hhmt*(ky**2+kz**2)
-!            eee(n) =( (kx/tm(1))**2+(ky/tm(2))**2+(kz/tm(3))**2 )/smh/smh  !
-!            eee(n) = eee(n)/smh/smh
-!         else if (ivv==3 .OR. ivv==4) then              ! y-direction ⊥ E field
-!            gk = hhml*ky**2 + hhmt*(kz**2+kx**2)
-!            eee(n) =( (kx/tm(3))**2+(ky/tm(1))**2+(kz/tm(2))**2 )/smh/smh  !
-!!            eee(n) = eee(n)/smh/smh
-!         else                               ! z-direction ⊥ E field
-!            gk = hhml*kz**2 + hhmt*(kx**2+ky**2)
-!            eee(n) =( (kx/tm(2))**2+(ky/tm(3))**2+(kz/tm(1))**2 )/smh/smh  !
-!!            eee(n) = eee(n)/smh/smh
-!         end if
-!         
-!         eee(n)=Elec(n,EE)   ! 2018.10.13 debug
+!
+!!		write(*,'(2(i10,A),4(E22.15,A))') n,' ',iv(n),' ',Elec(n,EE),' ',Elec(n,PX),' ',Elec(n,PY),' ',Elec(n,PZ)  ! debug
+!!		write(8,'(2(i10,A),4(E22.15,A))') n,' ',iv(n),' ',Elec(n,EE),' ',Elec(n,PX),' ',Elec(n,PY),' ',Elec(n,PZ)  ! debug
 !
 		if (Elec(n,EE) > eemax) then
 			iemax = n              ! the same particle?
@@ -1967,7 +2095,7 @@ program main
 	call monte_carlo(Elec,iv,NELph0,NETph0,NBph,DEph)
 !
 !---( 粒子の最終エネルギー分布 )---
-	call energy_dist(Elec)
+	call energy_dist(Elec,iv)
 !
 !---( フォノンの頻度分布 )---
 	do i=1,NBph
