@@ -39,6 +39,11 @@
 ! rv06 2018.11.
 !					ion scattering
 !					option M_random_number or N_random_number; select by use sentence
+! rv07 2018.11.18
+!					intra_Valley_Scattering
+!					á@ÉGÉlÉãÉMÅ[Ç∆â^ìÆó ÇÃê‚ëŒílÇìôï˚ìIÇ…åvéZÅÀáAàŸï˚ê´íJÇ≈â^ìÆó ÇÃÉxÉNÉgÉãÇåvéZ
+!					á@áAóºé“ÇÃç∑Ç™1%à»ì‡ÇÃÇ‡ÇÃÇåJÇËï‘ÇµÇ≈íTÇ∑ÇÊÇ§Ç…ÉvÉçÉOÉâÉÄïœçX
+!
 !===( óêêîî≠ê∂ä÷êî )=== 
 ! 2018.08.16 rnd() -> system random number:call random_number()
 ! 2018.08.23 rv04  -> Mersenne random number: call grnd()
@@ -301,12 +306,9 @@ module Tom2Pop_sub_program_variables    !----- ã§í ïœêî -----
 	Double Precision dt,Temp,fx
 	Double Precision de
 	Double Precision :: swk(18,3002)=0.d0	!	3002 ->x5=15010
-	Double Precision mdos      
-	Double Precision gm                 
-!!!	Double Precision smh,hhml,hhmt         
-	Double Precision alpha
-!!!	Double Precision tm(3)                
-!!!	Double Precision hm(3)                
+	Double Precision mdos
+	Double Precision gm
+	Double Precision alpha               
 	Double Precision qhbar                   
 	Double Precision kbTq                  
 	Double Precision ef
@@ -321,6 +323,9 @@ module Tom2Pop_sub_program_variables    !----- ã§í ïœêî -----
 	Double Precision Egetlost_scat, Egetlost_drift		!	Energy conservation
 !
 	integer, parameter::BZCLIP=0
+	Double Precision,parameter::eee_convergence=0.001d0		!	final_state_intra_ScatByLATA
+	Double Precision,parameter::ephon_convergence=0.01d0	!	final_state_inter_scat_g & f
+	
 end module Tom2Pop_sub_program_variables
 !****************************************************************************************
 module Pop_sub_programs
@@ -638,9 +643,6 @@ subroutine param
 !
 !
 	Double Precision,parameter::q = 1.d0               ! e
-!	Double Precision,parameter::echarge = 1.d0		!  // electron charge 
-!				#define echarge   -1.0             // electron charge 
-!				#define ecoulom   -1.60217653d-19  // electron charge in Coulombs
 	Double Precision,parameter::hbar  = 6.58211915d-16  ! eV*s 
 	Double Precision,parameter::ep0 = 5.52634972d+05    ! e/V/cm    !ê^ãÛóUìdó¶
 	Double Precision,parameter::m0 = 5.68562975d-16    ! eV*s^2/cm^2  !electron mass
@@ -679,15 +681,6 @@ subroutine param
 !
 	mdos  = (ml*mt*mt)**(1.d0/3.d0) !ëäèÊïΩãœ effective m 0.328?
 	amc  = 3.d0/(1.d0/ml+2.d0/mt)!ãtêîëäâ¡ïΩãœ effective m at B edge 0.266?
-!!!	tm(1)=sqrt(ml/mdos)		!	èc 1.67
-!!!	tm(2)=sqrt(mt/mdos)		!	â° 0.773
-!!!	tm(3)=sqrt(mt/mdos)		!	â° 0.773
-!!!	smh  = sqrt(2.d0*mdos*echarge)/hbar		!	h->hbar
-!!!	hhml = hbar/ml/echarge*hbar/2.d0		!	èc ! h->hbar
-!!!	hhmt = hbar/mt/echarge*hbar/2.d0		!	â° ! h->hbar
-!!!	hm(1)= hbar/ml		!	èc ! h->hbar
-!!!	hm(2)= hbar/mt		!	â° ! h->hbar
-!!!	hm(3)= hbar/mt		!	â° ! h->hbar
 !
 !---( ÉoÉìÉhÇÃîÒï˙ï®ê¸ê´ )---
 !
@@ -805,21 +798,6 @@ subroutine param
 !=====[ ÉCÉIÉìâªïsèÉï®éUóê  }===== Pop scattering type #18
 		swk(18,ie)= rateDOP(ei)
 !
-!!! debug
-!	swk(8,ie)= 0.d0		!	f TO	debug
-!	swk(9,ie)= 0.d0		!	f TO	debug
-!	swk(12,ie)= 0.d0	!	f LA	debug
-!	swk(13,ie)= 0.d0	!	f LA	debug
-!	swk(14,ie)= 0.d0	!	f TA	debug
-!	swk(15,ie)= 0.d0	!	f TA	debug
-!	
-!	swk(6,ie)= 0.d0		!	g LO	debug
-!	swk(7,ie)= 0.d0		!	g LO	debug
-!	swk(10,ie)= 0.d0	!	g TA	debug
-!	swk(11,ie)= 0.d0	!	g TA	debug
-!	swk(16,ie)= 0.d0	!	g LA	debug
-!	swk(17,ie)= 0.d0	!	g LA	debug
-!!! debug
 !
 	end do
 !        
@@ -1064,11 +1042,13 @@ subroutine monte_carlo(Elec,iv,NELph0,NETph0,NBph,DEph)
 	Double Precision, intent(in)::DEph
 	Double Precision t
 	integer jt
-!            
-!	do jt=1,jtl
+	integer phonon_count_ON
+!
+	phonon_count_ON=0
 	do jt=0,jtl
 		t=dt*float(jt)
-		call emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
+		if (jt > 0.9*jtl) phonon_count_ON=1		!	count for last 10% iteration
+		call emc(t,Elec,iv,NELph0,NETph0,NBph,DEph,phonon_count_ON) 
 		write(*,'(i10)',advance = 'no') jt   ! iteration no
 		write(8,'(i10)',advance = 'no') jt   ! iteration no
 		call out(t,Elec,iv)
@@ -1078,7 +1058,7 @@ end subroutine monte_carlo
 !========================================================================================
 !===(éûä‘dtÇÃä‘ÇÃëΩó±éqÉÇÉìÉeÉJÉãÉçåvéZ )===
 !
-subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
+subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph,phonon_count_ON) 
 	implicit none
 	Double Precision, intent(in)::t
 	Double Precision, intent(inout)::Elec(:,:)
@@ -1088,12 +1068,12 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 	Double Precision Elost
 	integer n, ivv
 	Double Precision, intent(inout)::NELph0(:),NETph0(:)
-	integer ,intent(in)::NBph
+	integer ,intent(in)::NBph,phonon_count_ON
 	Double Precision, intent(in)::DEph
 	Double Precision eeePre							!	Energy conservation
 	Double Precision kxPre, kyPre, kzPre			!	debug
 	integer ivvPre									!	debug
-	Double Precision skx, sky, skz, gk, eeeCalc, eeePreCalc		!	debug
+	Double Precision gk, eeeCalc, eeePreCalc		!	debug
 !
 	Egetlost_drift=0.d0				!	Energy conservation 
 	Egetlost_scat=0.d0				!	Energy conservation
@@ -1135,7 +1115,7 @@ subroutine emc(t,Elec,iv,NELph0,NETph0,NBph,DEph)
 !!			kzPre=kz			!	debug
 !!			ivvPre=ivv			!	debug
 !
-			call scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)
+			call scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost,phonon_count_ON) 
 !
 !!			gk = (hbar*kx-pvx(ivv))**2/(2.d0*mx(ivv)) + (hbar*ky-pvy(ivv))**2/(2.d0*my(ivv)) + (hbar*kz-pvz(ivv))**2/(2.d0*mz(ivv))
 !!			eeeCalc=(sqrt(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)		!	eee after scat (Tomizawa (1.7))
@@ -1188,7 +1168,7 @@ subroutine drift(tau,kx,ky,kz,eee,x,y,ivv)  ! Global kx, ky, kz
 	implicit none
 	Double Precision, intent(inout)::  tau, kx,ky,kz,eee,x,y
 	integer, intent(inout):: ivv
-	Double Precision dkx, skx, sky, skz, cp, sq, gk
+	Double Precision dkx, cp, sq, gk
 !
 	dkx=qhbar*fx*tau ! dk=q/hÅEFÅEÉ—
 !
@@ -1218,7 +1198,7 @@ end subroutine drift
 !========================================================================================
 !===( éUóêâﬂíˆÇÃåvéZ )===
 !
-subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky, kz
+subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost,phonon_count_ON)   ! Global kx, ky, kz
 	implicit none
 	Double Precision, intent(inout)::  kx,ky,kz,eee
 	integer, intent(inout):: ivv
@@ -1229,7 +1209,7 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 	Double Precision aed
 	integer LT
 	Double Precision, intent(inout)::NELph0(:),NETph0(:)
-	integer ,intent(in)::NBph
+	integer ,intent(in)::NBph,phonon_count_ON
 	Double Precision, intent(in)::DEph
 	Double Precision padjust, Elost
 !
@@ -1290,66 +1270,66 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 			qM = ki + kspmax									!	max momentum of phonon at final state
 		end if
 !
-		call final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,qM,NELph0,NETph0,NBph,DEph)
+		call final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,qM,NELph0,NETph0,NBph,DEph,phonon_count_ON) 
 !
 	elseif (r1 <= swk(6,ie)) then       !  O-g-emis
 		LT=LO
 		aed=+1.d0
-		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
+		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON)  ! Global kx, ky, kz
 	elseif (r1 <= swk(7,ie)) then   !  O-g-abs
 		LT=LO
 		aed=-1.d0
-		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
+		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON)  ! Global kx, ky, kz
 	elseif (r1 <= swk(8,ie)) then   !  O-f-emis
 		LT=TO
 		aed=+1.d0
-		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph)
+		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON) 
 	elseif (r1 <= swk(9,ie)) then   !  O-f-abs
 		LT=TO
 		aed=-1.d0
-		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph)
+		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON) 
 !
 	else if (r1 <= swk(10,ie)) then   ! TA-g emission
 		LT=TA
 		aed=+1.d0
-		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz 
+		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON)  ! Global kx, ky, kz 
 !
 	else if (r1 <= swk(11,ie)) then   ! TA-g absorption
 		LT=TA
 		aed=-1.d0
-		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
+		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON)  ! Global kx, ky, kz
 !
 	else if (r1 <= swk(12,ie)) then   ! LA-f emission
 		LT=LA
 		aed=+1.d0
-		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz 	
+		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON)  ! Global kx, ky, kz 	
 !
 	else if (r1 <= swk(13,ie)) then   ! LA-f absorption
 		LT=LA
 		aed=-1.d0
-		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
+		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON)  ! Global kx, ky, kz
 !
 	else if (r1 <= swk(14,ie)) then   ! TA-f emission
 		LT=TA
 		aed=+1.d0
-		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
+		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON)  ! Global kx, ky, kz
 !
 	else if (r1 <= swk(15,ie)) then   ! TA-f absorption
 		LT=TA
 		aed=-1.d0
-		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
+		call final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON)  ! Global kx, ky, kz
 !
 
 	else if (r1 <= swk(16,ie)) then   ! LA-g emission
 		LT=LA
 		aed=+1.d0
-		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz 
+		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON)  ! Global kx, ky, kz 
 !
 
 	else if (r1 <= swk(17,ie)) then   ! LA-g absorption
 		LT=LA
 		aed=-1.d0
-		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph)	 ! Global kx, ky, kz 
+		call final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON) 	 ! Global kx, ky, kz 
 !
 	else if (r1 <= swk(18,ie)) then   ! ion scattering
 		call final_state_impurity_scat(kx,ky,kz,eee,ivv)								 ! Global kx, ky, kz 
@@ -1357,7 +1337,7 @@ subroutine scat(kx,ky,kz,eee,ivv,NELph0,NETph0,NBph,DEph,Elost)  ! Global kx, ky
 !      
 end subroutine scat
 !========================================================================================
-subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,qM,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
+subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,qM,NELph0,NETph0,NBph,DEph,phonon_count_ON) ! Global kx, ky, kz
 ! common treatment for intra_ScatByLA&TA:
 	implicit none
 	Double Precision, intent(inout)::  kx,ky,kz,eee
@@ -1372,12 +1352,11 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	Double Precision calp, salp, bet
 !!	Double Precision,parameter::PQMAX = 7.6149280673e-08 ! hbar*QMAX(Wigner-Seitz cell radius)
 	Double Precision, intent(inout)::NELph0(:),NETph0(:)
-	integer ,intent(in)::NBph
+	integer ,intent(in)::NBph, phonon_count_ON
 	Double Precision, intent(in)::DEph
 	integer ie
 	Double Precision Pxyz
 	Double Precision gk,eeeCalc									!	trial
-	Double Precision, parameter:: eee_convergence=0.01d0		!	trial
 	integer REDO												!	trial
 !      
 	C = qM*get_Mq(qM,LT,aed)*(1.d0+2.d0*alpha*(eee-aed*hbar*get_wq(qM,LT))) 
@@ -1401,19 +1380,21 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 		end if
 	end do
 !               
-!!!  set the electron energy, consistent w/the momentum exchange above
+!!	set the electron energy, consistent w/the momentum exchange above
 	eee = eee - aed*ephon
-!!!  return the phonon energy and momentum for STATS
+!!	return the phonon energy and momentum for STATS
 !
 !		**  phonon counting(+emit & -absorb)
-	ie=int(ephon/DEph)+1
-	if (ie > NBph) then
-		write(*,*) '** WARNING 1 ** too large ephon',ephon
-		write(8,*) '** WARNING 1 ** too large ephon',ephon
-	else if (LT==LA .OR. LT==LO) then
-		NELph0(ie)=NELph0(ie)+aed*1.d0
-	else if (LT==TA .OR. LT==TO) then
-		NETph0(ie)=NETph0(ie)+aed*1.d0
+	if (phonon_count_ON == 1) then
+		ie=int(ephon/DEph)+1
+		if (ie > NBph) then
+			write(*,*) '** WARNING 1 ** too large ephon',ephon
+			write(8,*) '** WARNING 1 ** too large ephon',ephon
+		else if (LT==LA .OR. LT==LO) then
+			NELph0(ie)=NELph0(ie)+aed*1.d0
+		else if (LT==TA .OR. LT==TO) then
+			NETph0(ie)=NETph0(ie)+aed*1.d0
+		end if
 	end if
 !
 	qdum = q0
@@ -1517,7 +1498,6 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !		  // if BZCLIP = 0 this && is always FALSE so it only goes thru ONCE
 !		  // if the counter exceeds 200 reps then make it isotropic
 	if (cnt > 2000) then !  <39>{          // note:  this never happens if BZCLIP = 0
-!		  if (cnt > 200) write(*,*) '** WARNING (intra_scatByLATA) **  cnt =',cnt   ! debug
 		write(*,*) '** WARNING 4 (intra_scatByLATA) **  cnt =',cnt
 		write(8,*) '** WARNING 4 (intra_scatByLATA) **  cnt =',cnt
 !			     /***** compute ISOTROPIC new angles if all else fails above ******/
@@ -1565,7 +1545,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 !--- end calculation of final state for LA/TA phonon emission/absorption (type=2-5)
 end subroutine final_state_intra_ScatByLATA
 !========================================================================================
-subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
+subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON) ! Global kx, ky, kz
 	implicit none
 	Double Precision, intent(inout)::  kx,ky,kz,eee
 	Double Precision aed
@@ -1575,12 +1555,11 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	Double Precision pp, pxo, pyo, pzo, dpx, dpy, dpz, r
 	Double Precision qdum, edum
 	Double Precision, intent(inout)::NELph0(:),NETph0(:)
-	integer ,intent(in)::NBph
+	integer ,intent(in)::NBph, phonon_count_ON
 	Double Precision, intent(in)::DEph
 	integer ie
 	integer Pxyz
 	integer cnt2				!! debug
-	Double Precision, parameter:: ephon_convergence=0.01d0
 !
 	cnt=0
 	REDO=1
@@ -1612,9 +1591,7 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 		ephon0 = ephon
 !				// estimate new electron energy
 		Ep = eee - aed*ephon0
-!			#ifdef POP
 		if (Ep > EMIN)  then   !  áD{
-!			#endif
 !				// compute new momentum in Herring-Vogt space
 			pp = sqrt(2.d0*mdos*Ep*(1.d0+alpha*Ep))
 !				// choose the set of random angles
@@ -1651,12 +1628,11 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 				end if
 				cnt2=cnt2+1				!! debug
 				if (cnt2==10000) then				!! debug
-					write(*,*) 'before WARNING 6 while cnt=', cnt2				!! debug
-					write(8,*) 'before WARNING 6 while cnt=', cnt2				!! debug
+					write(*,*) 'WARNING 5.5 while cnt=', cnt2				!! debug
+					write(8,*) 'WARNING 5.5 while cnt=', cnt2				!! debug
 				end if				!! debug
 			end do
 !	  	  
-!				#ifdef POP
 !				// difference between final & initial momentum vectors
 			dpx = hbar*kx-pxo
 			dpy = hbar*ky-pyo
@@ -1692,33 +1668,28 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !				// empirical note: this happens VERY rarely so it's OK
 	end do
 !				}áG while (REDO)
-!				#endif
 !  			// set the electron energy, consistent w/the momentum exchange above
 	eee = eee - aed*ephon 
 !
-!			if (aed > 0.) assert(Elec[EE][j] > EMIN)
-!			// return the phonon energy and momentum for STATS
-!
 !		**  phonon counting(+emit & -absorb)
-	ie=int(ephon/DEph)+1
-	if (ie > NBph) then
-		write(*,*) '** WARNING 8 ** too large ephon',ephon
-		write(8,*) '** WARNING 8 ** too large ephon',ephon
-	else if (LT==LA .OR. LT==LO) then
-		NELph0(ie)=NELph0(ie)+aed*1.d0
-	else if (LT==TA .OR. LT==TO) then
-		NETph0(ie)=NETph0(ie)+aed*1.d0
+	if (phonon_count_ON == 1) then
+		ie=int(ephon/DEph)+1
+		if (ie > NBph) then
+			write(*,*) '** WARNING 8 ** too large ephon',ephon
+			write(8,*) '** WARNING 8 ** too large ephon',ephon
+		else if (LT==LA .OR. LT==LO) then
+			NELph0(ie)=NELph0(ie)+aed*1.d0
+		else if (LT==TA .OR. LT==TO) then
+			NETph0(ie)=NETph0(ie)+aed*1.d0
+		end if
 	end if
 !
 	qdum = qphon
 	edum = ephon
-!			// consistent within 5% with the electron energy exchange [based on
-!			// ephon0] but here i'm keeping qphon + ephon for consistency within
-!			// the generated phonon statistics
 !
 end subroutine final_state_inter_scat_g
 !========================================================================================
-subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph) ! Global kx, ky, kz
+subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,DEph,phonon_count_ON) ! Global kx, ky, kz
 	implicit none
 	Double Precision, intent(inout)::  kx,ky,kz,eee
 	Double Precision aed
@@ -1728,12 +1699,11 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	Double Precision pp, pxo, pyo, pzo, dpx, dpy, dpz, r, EX, E0
 	Double Precision qdum, edum
 	Double Precision, intent(inout)::NELph0(:),NETph0(:)
-	integer ,intent(in)::NBph
+	integer ,intent(in)::NBph, phonon_count_ON
 	Double Precision, intent(in)::DEph
 	integer ie
 	integer Pxyz
 	integer cnt2				!! debug
-	Double Precision, parameter:: ephon_convergence=0.01d0
 !    
 	EX=0.d0
 	cnt=0
@@ -1742,7 +1712,7 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !		eee = E0  = Elec[EE][j]
 !		ivv = iv0 = iv[j]
 
-!			#ifdef POP   // store original momentum components and valley
+!			// store original momentum components and valley
 	if ((aed > 0.) .AND. ((eee - hbar*get_wq(QFp*QMAX,LT)) <= EMIN)) then
 !			write (*,*) 'eee - hbar*get_wq(QFp*QMAX,LT) <= EMIN'
 		return   !  do nothing OK? 2018.10.12
@@ -1822,8 +1792,8 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 				end if
 				cnt2=cnt2+1				!! debug
 				if (cnt2==10000) then				!! debug
-					write(*,*) 'before WARNING 10 while cnt=', cnt2				!! debug
-					write(8,*) 'before WARNING 10 while cnt=', cnt2				!! debug
+					write(*,*) 'WARNING 9.5 while cnt=', cnt2				!! debug
+					write(8,*) 'WARNING 9.5 while cnt=', cnt2				!! debug
 				end if				!! debug
 			end do
 !
@@ -1844,7 +1814,7 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !				// get resulting phonon energy and momentum
 			ephon = hbar*get_wq(qphon,LT)
 !				// re-estimate new electron energy
-			Ep = eee - aed*ephon0 + EX
+			Ep = eee - aed*ephon + EX
 !				// upper limit for cnt = 200, see right below
 			cnt=cnt+1
 			if ((Ep > EMIN) .AND. ((abs(ephon-ephon0)/ephon0) < ephon_convergence)) REDO = 0
@@ -1869,19 +1839,21 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !				} while (REDO)
 !				#endif
 !				// set the electron energy, consistent w/the momentum exchange above
-	eee = eee - aed*ephon0 + EX 
+	eee = eee - aed*ephon + EX 
 !				if (aed > 0.) assert(Elec[EE][j] > EMIN)
 !				// return the phonon energy and momentum for STATS
 !
 !		**  phonon counting(+emit & -absorb)
-	ie=int(ephon/DEph)+1
-	if (ie > NBph) then
-		write(*,*) '** WARNING 12 ** too large ephon',ephon
-		write(8,*) '** WARNING 12 ** too large ephon',ephon
-	else if (LT==LA .OR. LT==LO) then
-		NELph0(ie)=NELph0(ie)+aed*1.d0
-	else if (LT==TA .OR. LT==TO) then
-		NETph0(ie)=NETph0(ie)+aed*1.d0
+	if (phonon_count_ON == 1) then
+		ie=int(ephon/DEph)+1
+		if (ie > NBph) then
+			write(*,*) '** WARNING 12 ** too large ephon',ephon
+			write(8,*) '** WARNING 12 ** too large ephon',ephon
+		else if (LT==LA .OR. LT==LO) then
+			NELph0(ie)=NELph0(ie)+aed*1.d0
+		else if (LT==TA .OR. LT==TO) then
+			NETph0(ie)=NETph0(ie)+aed*1.d0
+		end if
 	end if
 !
 	qdum = qphon
@@ -1970,8 +1942,8 @@ subroutine final_state_impurity_scat(kx,ky,kz,eee,ivv)
 !
 		cnt=cnt+1				!! debug
 		if (MOD(cnt,10000)==0) then				!! debug
-			write(*,*) 'before WARNING 10 while cnt=', cnt				!! debug
-			write(8,*) 'before WARNING 10 while cnt=', cnt				!! debug
+			write(*,*) 'WARNING 13 while cnt=', cnt				!! debug
+			write(8,*) 'WARNING 13 while cnt=', cnt				!! debug
 		end if				!! debug
 	end do
 !
@@ -2125,8 +2097,8 @@ program main
 !
 !---( ÉtÉHÉmÉìÇÃïpìxï™ïz )---
 	do i=1,NBph
-		NELph0(i)=NELph0(i)*(1.0d17/inum_dummy)*(1/SimTime)
-		NETph0(i)=NETph0(i)*(1.0d17/inum_dummy)*(1/SimTime)
+		NELph0(i)=NELph0(i)*(1.0d17/inum_dummy)*(1.0/(1.0-0.9)/SimTime)		!	phonon_count_ON time correction
+		NETph0(i)=NETph0(i)*(1.0d17/inum_dummy)*(1.0/(1.0-0.9)/SimTime)		!	phonon_count_ON time correction
 		write (*,'(i10,3(A,E22.15))') i,' ',dble(i)*DEph,' ',NELph0(i),' ',NETph0(i)
 		write (8,'(i10,3(A,E22.15))') i,' ',dble(i)*DEph,' ',NELph0(i),' ',NETph0(i)
 	end do
