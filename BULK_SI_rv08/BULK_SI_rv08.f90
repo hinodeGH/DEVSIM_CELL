@@ -39,6 +39,11 @@
 ! rv06 2018.11.
 !					ion scattering
 !					option M_random_number or N_random_number; select by use sentence
+! rv07 2018.11.18
+!					intra_Valley_Scattering
+!					①エネルギーと運動量の絶対値を等方的に計算⇒②異方性谷で運動量のベクトルを計算
+!					①②両者の差が1%以内のものを繰り返しで探すようにプログラム変更
+!
 !===( 乱数発生関数 )=== 
 ! 2018.08.16 rnd() -> system random number:call random_number()
 ! 2018.08.23 rv04  -> Mersenne random number: call grnd()
@@ -318,7 +323,7 @@ module Tom2Pop_sub_program_variables    !----- 共通変数 -----
 	Double Precision Egetlost_scat, Egetlost_drift		!	Energy conservation
 !
 	integer, parameter::BZCLIP=0
-	Double Precision,parameter::eee_convergence=0.0001d0		!	final_state_intra_ScatByLATA
+	Double Precision,parameter::eee_convergence=0.001d0		!	final_state_intra_ScatByLATA
 	Double Precision,parameter::ephon_convergence=0.01d0	!	final_state_inter_scat_g & f
 	
 end module Tom2Pop_sub_program_variables
@@ -674,7 +679,7 @@ subroutine param
 !
 !---( バンドの非等方性 )---
 !
-	mdos  = (ml*mt*mt)**(1.d0/3.d0) !相乗平均 effective m 0.328?
+	mdos  = (ml*mt*mt)**(1.d0/3.d0) !相乗平均 effective m ~0.328m0
 	amc  = 3.d0/(1.d0/ml+2.d0/mt)!逆数相加平均 effective m at B edge 0.266?
 !
 !---( バンドの非放物線性 )---
@@ -1341,7 +1346,7 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	integer LT
 	Double Precision aed
 	Double Precision C, qM, kspmax, Epmax, q0, f0, fx, ephon, acost
-	Double Precision qdum, edum, pprime, kprime
+	Double Precision pprime, kprime
 	Double Precision cbet, sbet, cgam, sgam, cgamp, cgampp, eta, ceta, seta, phi, sphi, cphi
 	integer cnt
 	Double Precision calp, salp, bet
@@ -1350,8 +1355,8 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	Double Precision, intent(in)::DEph
 	integer ie
 	Double Precision Pxyz
-	Double Precision gk,gk0,eeeCalc,kx0,ky0,kz0,kix,kiy,kiz,ramda		!	trial
-	integer REDO													!	trial
+	Double Precision gk,gk0,eeeCalc,kix,kiy,kiz,ramda,kx0,ky0,kz0,ramda0		!	trial
+	integer REDO,REDO_Outer_Loop													!	trial
 !      
 	C = qM*get_Mq(qM,LT,aed)*(1.d0+2.d0*alpha*(eee-aed*hbar*get_wq(qM,LT))) 
 !
@@ -1392,17 +1397,12 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 		end if
 	end if
 !
-	qdum = q0
-	edum = ephon
 !        
 !--- calculation of final state for LA/TA phonon emission/absorption (type=2-5)
 !
 	kix=kx - pvx(ivv)/hbar			!	Global → Local
 	kiy=ky - pvy(ivv)/hbar			!	Global → Local
 	kiz=kz - pvz(ivv)/hbar			!	Global → Local
-	kx0=kix
-	ky0=kiy
-	kz0=kiz
 !!	write(*,'(3(A,E22.15))') ' ',kx,' ',ky,' ',kz				!	debug
 !!	write(8,'(3(A,E22.15))') ' ',kx,' ',ky,' ',kz				!	debug
 	pprime = sqrt(2.d0*mdos*eee*(1.d0+alpha*eee)) !
@@ -1431,55 +1431,83 @@ subroutine final_state_intra_scatByLATA(kx,ky,kz,ki,eee,ivv,LT,aed,Epmax,kspmax,
 	eta = atan((hbar*kx-pvx(ivv))*my(ivv)/((hbar*ky-pvy(ivv))*mx(ivv)))
 	ceta = cos(eta)
 	seta = sin(eta)
-	phi = 2.d0*pi*grnd()
-	sphi = sin(phi) 
-	cphi = cos(phi) 
-!	first trial k
-	kz = (cbet*cgam   +sbet*cphi*sgam)*sqrt(mz(ivv)/mdos)*pprime/hbar						!	Local kz
-	ky = (cbet*cgamp  -sbet*cphi*cgam*ceta -sbet*sphi*seta)*sqrt(my(ivv)/mdos)*pprime/hbar	!	Local ky
-	kx = (cbet*cgampp -sbet*cphi*cgam*seta +sbet*sphi*ceta)*sqrt(mx(ivv)/mdos)*pprime/hbar	!	Local kx
 !
-	cnt=1   !! debug
-	REDO=1
-	gk=0.5d0*hbar*hbar*(kx**2/mx(ivv)+ky**2/my(ivv)+kz**2/mz(ivv))
-	eeeCalc=(SQRT(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)
-	if (ABS(eee-eeeCalc)/eee < eee_convergence) REDO=0
+	REDO_Outer_Loop=10000
+	do while (REDO_Outer_Loop > 0)
+		phi = 2.d0*pi*grnd()
+		sphi = sin(phi) 
+		cphi = cos(phi) 
+!		--- first candidate k
+		kz = (cbet*cgam   +sbet*cphi*sgam)*sqrt(mz(ivv)/mdos)*pprime/hbar						!	Local kz
+		ky = (cbet*cgamp  -sbet*cphi*cgam*ceta -sbet*sphi*seta)*sqrt(my(ivv)/mdos)*pprime/hbar	!	Local ky
+		kx = (cbet*cgampp -sbet*cphi*cgam*seta +sbet*sphi*ceta)*sqrt(mx(ivv)/mdos)*pprime/hbar	!	Local kx
+!
+		cnt=1
+		REDO=1
+		gk=0.5d0*hbar*hbar*(kx**2/mx(ivv)+ky**2/my(ivv)+kz**2/mz(ivv))
+		eeeCalc=(SQRT(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)
+		if (ABS(eee-eeeCalc)/eee < eee_convergence) then
+			REDO=0
+			REDO_Outer_Loop=0
+!!			write(*,'(4(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz				!	debug
+!!			write(8,'(4(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz				!	debug
+		end if
 !!	write(*,'(3(A,E22.15))') ' ',mx(ivv),' ',my(ivv),' ',mz(ivv)		!	debug
 !!	write(8,'(3(A,E22.15))') ' ',mx(ivv),' ',my(ivv),' ',mz(ivv)		!	debug
 !!	write(*,'(4(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz				!	debug
 !!	write(8,'(4(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz				!	debug
 !
-	do while(REDO > 0)
-!		(kx,ky,kz)から最短距離の、(kix,kiy,kiz)を中心とし半径q0の球表面点→新たに(kx,ky,kz)
-		ramda=q0/SQRT((kx - kix)**2+(ky - kiy)**2+(kz - kiz)**2)
-		kx=kix + ramda*(kx - kix)
-		ky=kiy + ramda*(ky - kiy)
-		kz=kiz + ramda*(kz - kiz)
-!!		write(*,'(4(A,E22.15))',advance = 'no') ' ',ramda,' ',kx,' ',ky,' ',kz				!	debug
-!!		write(8,'(4(A,E22.15))',advance = 'no') ' ',ramda,' ',kx,' ',ky,' ',kz				!	debug
+		do while(REDO > 0)
+!			(kx,ky,kz)から最短距離の、(kix,kiy,kiz)を中心とし半径q0の球表面点→新たに(kx,ky,kz)
+			ramda=q0/SQRT((kx - kix)**2+(ky - kiy)**2+(kz - kiz)**2)
+			kx=kix + ramda*(kx - kix)
+			ky=kiy + ramda*(ky - kiy)
+			kz=kiz + ramda*(kz - kiz)
+			kx0=kx							!	debug for print
+			ky0=ky							!	debug for print
+			kz0=kz							!	debug for print
+			ramda0=ramda					!	debug for print
+			gk=0.5d0*hbar*hbar*(kx**2/mx(ivv)+ky**2/my(ivv)+kz**2/mz(ivv))
+			eeeCalc=(SQRT(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)
+			if (ABS(eee-eeeCalc)/eee < eee_convergence) then
+				REDO=0
+				REDO_Outer_Loop=0
+!!				write(*,'(4(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz				!	debug
+!				write(8,'(4(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz				!	debug
+			end if
 !
-!		(kx,ky,kz)から最短距離の、原点を中心とした回転楕円体表面点（近似）→新たに(kx,ky,kz)
-		gk=0.5d0*hbar*hbar*(kx**2/mx(ivv)+ky**2/my(ivv)+kz**2/mz(ivv))
-!		ramda=(kx**2/mx(ivv)+ky**2/my(ivv)+kz**2/mz(ivv)-2.d0*gk0/hbar**2)/(2.d0*(kx**2/mx(ivv)**2+ky**2/my(ivv)**2+kz**2/mz(ivv)**2))
-		ramda=SQRT(gk0/gk)
-		kx=kx*ramda
-		ky=ky*ramda
-		kz=kz*ramda
+!			(kx,ky,kz)から～最短距離の、原点を中心とした回転楕円体表面点（球近似）→新たに(kx,ky,kz)
+!			ramda=SQRT(gk0/gk)
+			ramda=(kx**2/mx(ivv)+ky**2/my(ivv)+kz**2/mz(ivv)-2.*gk0/hbar**2)/ &
+					&	(2.*(kx**2/mx(ivv)**2+ky**2/my(ivv)**2+kz**2/mz(ivv)**2))
+			kx=kx/(1+ramda/mx(ivv))
+			ky=ky/(1+ramda/my(ivv))
+			kz=kz/(1+ramda/mz(ivv))
 !
-		gk=0.5d0*hbar*hbar*(kx**2/mx(ivv)+ky**2/my(ivv)+kz**2/mz(ivv))
-		eeeCalc=(SQRT(1.d0+4.d0*alpha*gk)-1.d0)/(2.d0*alpha)
-		if (ABS(eee-eeeCalc)/eee < eee_convergence) REDO=0
-!!		write(*,'(6(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz,' ',gk,' ',gk0				!	debug
-!!		write(8,'(6(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz,' ',gk,' ',gk0				!	debug
-
-		if (cnt > 100) then
-			REDO=0
-			write(*,*) '** WARNING 3 (intra_scatByLATA) **  cnt =',cnt
-!			write(8,*) '** WARNING 3 (intra_scatByLATA) **  cnt =',cnt
-		end if
-		cnt=cnt+1
+!!			if (REDO==0) then			!	debug
+!!				write(*,*) 'cnt ', cnt				!	debug
+!!				write(8,*) 'cnt ', cnt				!	debug
+!!			end if
+!!			write(*,'(6(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz,' ',gk,' ',gk0				!	debug
+!!			write(8,'(6(A,E22.15))') ' ',ramda,' ',kx,' ',ky,' ',kz,' ',gk,' ',gk0				!	debug
+			if (cnt > 100) then
+				REDO=0
+				REDO_Outer_Loop=REDO_Outer_Loop-1
+				if(REDO_Outer_Loop==0) then
+					write(*,'(A,I10)',advance = 'no') '** WARNING 2 (intra_scatByLATA) **  REDO_Outer_Loop= ',REDO_Outer_Loop	!	debug
+					write(8,'(A,I10)',advance = 'no') '** WARNING 2 (intra_scatByLATA) **  REDO_Outer_Loop= ',REDO_Outer_Loop	!	debug
+					write(*,'(6(A,E22.15))',advance = 'no') ' ',ramda0,' ',kx0,' ',ky0,' ',kz0				!	debug
+					write(8,'(6(A,E22.15))',advance = 'no') ' ',ramda0,' ',kx0,' ',ky0,' ',kz0				!	debug
+					write(*,'(6(A,E22.15))',advance = 'no') ' ',ramda,' ',kx,' ',ky,' ',kz,' ',gk,' ',gk0				!	debug
+					write(8,'(6(A,E22.15))',advance = 'no') ' ',ramda,' ',kx,' ',ky,' ',kz,' ',gk,' ',gk0				!	debug
+					write(*,'(3(A,E22.15))') ' ',kix,' ',kiy,' ',kiz				!	debug
+					write(8,'(3(A,E22.15))') ' ',kix,' ',kiy,' ',kiz				!	debug
+				end if
+			end if
+			cnt=cnt+1
 !
-	end do	!	while(REDO)
+		end do	!	while(REDO)
+	end do	!	while(REDO_Outer_Loop)
 !
 	kx = kx + pvx(ivv)/hbar										!	Global k
 	ky = ky + pvy(ivv)/hbar										!	Global k
@@ -1503,7 +1531,6 @@ subroutine final_state_inter_scat_g(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	integer ie
 	integer Pxyz
 	integer cnt2				!! debug
-!!!	Double Precision, parameter:: ephon_convergence=0.001d0
 !
 	cnt=0
 	REDO=1
@@ -1641,14 +1668,12 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 	integer cnt, REDO
 	Double Precision ephon, ephon0, qphon, Ep, bet, calp, salp
 	Double Precision pp, pxo, pyo, pzo, dpx, dpy, dpz, r, EX, E0
-	Double Precision qdum, edum
 	Double Precision, intent(inout)::NELph0(:),NETph0(:)
 	integer ,intent(in)::NBph, phonon_count_ON
 	Double Precision, intent(in)::DEph
 	integer ie
 	integer Pxyz
 	integer cnt2				!! debug
-!!!	Double Precision, parameter:: ephon_convergence=0.001d0
 !    
 	EX=0.d0
 	cnt=0
@@ -1759,7 +1784,7 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !				// get resulting phonon energy and momentum
 			ephon = hbar*get_wq(qphon,LT)
 !				// re-estimate new electron energy
-			Ep = eee - aed*ephon0 + EX
+			Ep = eee - aed*ephon + EX
 !				// upper limit for cnt = 200, see right below
 			cnt=cnt+1
 			if ((Ep > EMIN) .AND. ((abs(ephon-ephon0)/ephon0) < ephon_convergence)) REDO = 0
@@ -1784,7 +1809,7 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !				} while (REDO)
 !				#endif
 !				// set the electron energy, consistent w/the momentum exchange above
-	eee = eee - aed*ephon0 + EX 
+	eee = eee - aed*ephon + EX 
 !				if (aed > 0.) assert(Elec[EE][j] > EMIN)
 !				// return the phonon energy and momentum for STATS
 !
@@ -1801,8 +1826,6 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 		end if
 	end if
 !
-	qdum = qphon
-	edum = ephon
 !				// this should be consistent within 5% with the electron energy
 !				// exchange [based on ephon0] but here i'm keeping qphon + ephon
 !				// for consistency within the generated phonon statistics
