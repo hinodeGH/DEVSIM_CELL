@@ -787,19 +787,19 @@ subroutine param
         end do
 !        
 !!----- debug scattering rate begin ------
-	do  ie=1,iemax
-		if (ie == 1) then
-			eee = EMIN
-		else
-			eee = de*float(ie-1)
-		end if
-!!			eee=de*float(ie)
-!!		eee=de*float(ie-1)+EMIN
-		write (*,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
-				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
-		write (8,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
-				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
-	end do
+!	do  ie=1,iemax
+!		if (ie == 1) then
+!			eee = EMIN
+!		else
+!			eee = de*float(ie-1)
+!		end if
+!!!			eee=de*float(ie)
+!!!		eee=de*float(ie-1)+EMIN
+!		write (*,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+!				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
+!		write (8,*) eee,swk(2,ie),swk(3,ie),swk(4,ie),swk(5,ie),swk(6,ie),swk(7,ie),swk(8,ie),swk(9,ie), &
+!				& swk(10,ie),swk(11,ie),swk(12,ie),swk(13,ie),swk(14,ie),swk(15,ie),swk(16,ie),swk(17,ie)
+!	end do
 !!------ debug scattering rate end -------
 !
 !---( ŽU—ƒŒ[ƒg‚Ì˜a‚ÌŒvŽZ )---
@@ -1700,7 +1700,7 @@ subroutine final_state_inter_scat_f(kx,ky,kz,eee,ivv,LT,aed,NELph0,NETph0,NBph,D
 !				// get resulting phonon energy and momentum
 			ephon = hbar*get_wq(qphon,LT)
 !				// re-estimate new electron energy
-			Ep = eee - aed*ephon0 + EX
+			Ep = eee - aed*ephon + EX
 !				// upper limit for cnt = 200, see right below
 			cnt=cnt+1
 			if ((Ep > EMIN) .AND. ((abs(ephon-ephon0)/ephon0) < 0.05)) REDO = 0
