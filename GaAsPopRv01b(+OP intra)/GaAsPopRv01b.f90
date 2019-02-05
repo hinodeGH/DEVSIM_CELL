@@ -267,8 +267,9 @@ module Tom2Pop_sub_program_variables    !----- ‹¤’Ê•Ï” -----
 	Double Precision Doping
 	Double Precision Egetlost_scat, Egetlost_drift		!	Energy conservation
 !
-	Double Precision,parameter::eee_convergence=0.000001d0		!	final_state_intra_ScatByLATA
-	Double Precision,parameter::epsLL=0.000001d0				!	final_state_intra_ScatByLOTO
+!!	Double Precision,parameter::eee_convergence=0.000001d0		!	final_state_intra_ScatByLATA
+!!	Double Precision,parameter::epsLL=0.000001d0				!	final_state_intra_ScatByLOTO
+	Double Precision eee_convergence, epsLL		!	final_state_intra_ScatByLATA/final_state_intra_ScatByLOTO
 	
 end module Tom2Pop_sub_program_variables
 !****************************************************************************************
@@ -541,6 +542,8 @@ subroutine data_input(inum_dummy,SimTime)
 	read(5,*) Temp      ! temperature [K] (typ.300)
 	read(5,*) fx       ! electric field [KV/cm] 
 	read(5,*) Doping	!	Dopant Concentration [1/cm3]
+	read(5,*) epsLL		!	convergence limit: 1%~1ppm?
+	eee_convergence = epsLL
 !
 	write(*,*) inum/1D6,' M particles'
 	write(*,*) jtl, ' iteration'
@@ -548,6 +551,7 @@ subroutine data_input(inum_dummy,SimTime)
 	write(*,*) Temp, ' K'
 	write(*,*) fx, ' KV/cm'
 	write(*,*) Doping, ' /cm3'
+	write(8,*) epsLL, ' convergence limit'
 !
 	write(8,*) inum/1D6,' M particles'
 	write(8,*) jtl, ' iteration'
@@ -555,6 +559,7 @@ subroutine data_input(inum_dummy,SimTime)
 	write(8,*) Temp, ' K'
 	write(8,*) fx, ' KV/cm'
 	write(8,*) Doping, ' /cm3'
+	write(8,*) epsLL, ' convergence limit'
 !	
 	fx=fx*1000.d0   !  kV/cm -> V/cm
 !
