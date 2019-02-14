@@ -213,7 +213,7 @@ module Tom2Pop_sub_program_variables    !----- ‹¤’Ê•Ï” -----
 	implicit none
 	Double Precision,parameter::EMIN = 0.d-10	! Pop 1.d-10 << 0.0005(=de)
 !	Double Precision,parameter::EMAX = 2.0D0	! ~2eV
-	Double Precision,parameter::EMAX = 99.0D0	! 99eV
+	Double Precision,parameter::EMAX = 9.9D0	! 9.9eV
 	Double Precision,parameter::QMIN = 1.d0	! // nearly zero compared to QMAX
 	Double Precision,parameter::QMAX = 1.11364d+08		!  2*pi/aGaAs(lattice constant, cm)
 	Double Precision,parameter::Rws = 2.20487d-8         !  aGaAs*pow(3./(16.*pi), 1./3.); aGaAs=5.642
