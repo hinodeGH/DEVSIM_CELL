@@ -169,7 +169,7 @@ subroutine param	!	set materials constants and calculate CMC transition table
     delta_kx = 2.*kx_max/nkx
     delta_ky = 2.*ky_max/nky
     delta_kz = 2.*kz_max/nkz
-    sgmGaussian = 10.0*(delta_kx*delta_ky*delta_kz)**(1.0/3.0)	!	delta function -> Gaussian
+    sgmGaussian = 1.0*(delta_kx*delta_ky*delta_kz)**(1.0/3.0)	!	delta function -> Gaussian
     ModeSeparator = 300.0
     write(*,*) 'delta_kx,delta_ky,delta_kz: ',delta_kx,delta_ky,delta_kz
 	write(8,*) 'delta_kx,delta_ky,delta_kz: ',delta_kx,delta_ky,delta_kz
@@ -235,12 +235,11 @@ subroutine param	!	set materials constants and calculate CMC transition table
 				if ((1.0 - e_phon/eee(i_cell_initial)) > 0. ) then
 					LargeK = kxyz(i_cell_initial)*sqrt(1.0 - e_phon/eee(i_cell_initial))
 !
-					wLAems = (DLA**2*q_phon_sq)/(8.*pi*pi*rho)/get_wq(q_phon, LA)*(get_nq(q_phon, LA)+1.)	&
-								& *delta_kx*delta_ky*delta_kz
+					wLAems = (DLA**2*q_phon_sq)/(8.*pi*pi*rho)/get_wq(q_phon, LA)*(get_nq(q_phon, LA)+1.)
 					kKsgm = (kxyz(i_cell_final)-LargeK)/sgmGaussian
 					if (kKsgm < ModeSeparator) then
 						EkConservationLAems =  (kxyz(i_cell_initial)**2/(2.0*eee(i_cell_initial)*LargeK))	&
-								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)
+								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)*delta_kx*delta_ky*delta_kz
 !!						write(*,*) wLAems,EkConservationLAems,wLAems*EkConservationLAems
 !!						write(8,*) wLAems,EkConservationLAems,wLAems*EkConservationLAems
 						mode(i_cell_initial, i_cell_final) = 1
@@ -257,12 +256,11 @@ subroutine param	!	set materials constants and calculate CMC transition table
 				if ((1.0 + e_phon/eee(i_cell_initial)) > 0. ) then
 					LargeK = kxyz(i_cell_initial)*sqrt(1.0 + e_phon/eee(i_cell_initial))
 !
-					wLAabs = (DLA**2*q_phon_sq)/(8.*pi*pi*rho)/get_wq(q_phon, LA)*get_nq(q_phon, LA)	&
-							&	*delta_kx*delta_ky*delta_kz
+					wLAabs = (DLA**2*q_phon_sq)/(8.*pi*pi*rho)/get_wq(q_phon, LA)*get_nq(q_phon, LA)
 					kKsgm = (kxyz(i_cell_final)-LargeK)/sgmGaussian
 					if (kKsgm < ModeSeparator) then
 						EkConservationLAabs =  (kxyz(i_cell_initial)**2/(2.0*eee(i_cell_initial)*LargeK))	&
-								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)
+								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)*delta_kx*delta_ky*delta_kz
 						mode(i_cell_initial, i_cell_final) = 2 + mode(i_cell_initial, i_cell_final)
 					else
 						EkConservationLAabs = 0.0
@@ -279,12 +277,11 @@ subroutine param	!	set materials constants and calculate CMC transition table
 				if ((1.0 - e_phon/eee(i_cell_initial)) > 0. ) then
 					LargeK = kxyz(i_cell_initial)*sqrt(1.0 - e_phon/eee(i_cell_initial))
 !
-					wLOems = (1.**2*get_wq(QcntrBZ, LO))/(8.*pi*pi*ep*q_phon_sq)*(get_nq(QcntrBZ,LO)+1.)		&
-								&	*delta_kx*delta_ky*delta_kz
+					wLOems = (1.**2*get_wq(q_phon, LO))/(8.*pi*pi*ep*q_phon_sq)*(get_nq(q_phon,LO)+1.)
 					kKsgm = (kxyz(i_cell_final)-LargeK)/sgmGaussian
 					if (kKsgm < ModeSeparator) then
 						EkConservationLOems =  (kxyz(i_cell_initial)**2/(2.0*eee(i_cell_initial)*LargeK))	&
-								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)
+								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)*delta_kx*delta_ky*delta_kz
 						mode(i_cell_initial, i_cell_final) = 4 + mode(i_cell_initial, i_cell_final)
 					else
 						EkConservationLOems = 0.0
@@ -299,12 +296,11 @@ subroutine param	!	set materials constants and calculate CMC transition table
 				if ((1.0 + e_phon/eee(i_cell_initial)) > 0. ) then
 					LargeK = kxyz(i_cell_initial)*sqrt(1.0 + e_phon/eee(i_cell_initial))
 !
-					wLOabs = (1.**2*get_wq(QcntrBZ, LO))/(8.*pi*pi*ep*q_phon_sq)*get_nq(QcntrBZ, LO)	&
-								&	*delta_kx*delta_ky*delta_kz
+					wLOabs = (1.**2*get_wq(q_phon, LO))/(8.*pi*pi*ep*q_phon_sq)*get_nq(q_phon, LO)
 					kKsgm = (kxyz(i_cell_final)-LargeK)/sgmGaussian
 					if (kKsgm < ModeSeparator) then
 						EkConservationLOabs =   (kxyz(i_cell_initial)**2/(2.0*eee(i_cell_initial)*LargeK))	&
-								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)
+								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)**delta_kx*delta_ky*delta_kz
 						mode(i_cell_initial, i_cell_final) = 8 + mode(i_cell_initial, i_cell_final)
 					else
 						EkConservationLOabs = 0.
@@ -315,7 +311,7 @@ subroutine param	!	set materials constants and calculate CMC transition table
 !!	----	2019.05.24 begin
 !!				wTotal(i_cell_initial,i_cell_final) = wLAems*EkConservationLAems + wLAabs*EkConservationLAabs  &
 !!												&	+ wLOems*EkConservationLOems + wLOabs*EkConservationLOabs
-				wTotal(i_cell_initial,i_cell_final) =  wLOabs*EkConservationLOabs
+				wTotal(i_cell_initial,i_cell_final) =  wLOems*EkConservationLOems
 !!	----	2019.05.24 end
 			end if
 		end do	!	i_cell_final do loop
