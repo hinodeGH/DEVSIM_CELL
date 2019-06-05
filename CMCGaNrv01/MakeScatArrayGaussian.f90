@@ -153,7 +153,7 @@ subroutine param	!	set materials constants and calculate CMC transition table
 	qhbar   = echarge/hbar   			!	h->hbar
 	mdos = 0.20*m0						!	effective mass
 	alpha = (1.d0 - mdos/m0)**2/Egap	!	ƒoƒ“ƒh‚Ì”ñ•ú•¨ü«
-	alpha = 0.	!	•ú•¨ü!!	----	2019.05.24 debug
+!	alpha = 0.	!	•ú•¨ü!!	----	2019.05.24 debug
 !
 ! ===== subroutine Make_Orthogonal_Grid()
 ! ===== implicit none
@@ -300,7 +300,7 @@ subroutine param	!	set materials constants and calculate CMC transition table
 					kKsgm = (kxyz(i_cell_final)-LargeK)/sgmGaussian
 					if (kKsgm < ModeSeparator) then
 						EkConservationLOabs =   (kxyz(i_cell_initial)**2/(2.0*eee(i_cell_initial)*LargeK))	&
-								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)**delta_kx*delta_ky*delta_kz
+								& /(sgmGaussian*sqrt(pi))*exp(-kKsgm**2)*delta_kx*delta_ky*delta_kz
 						mode(i_cell_initial, i_cell_final) = 8 + mode(i_cell_initial, i_cell_final)
 					else
 						EkConservationLOabs = 0.
@@ -311,7 +311,7 @@ subroutine param	!	set materials constants and calculate CMC transition table
 !!	----	2019.05.24 begin
 !!				wTotal(i_cell_initial,i_cell_final) = wLAems*EkConservationLAems + wLAabs*EkConservationLAabs  &
 !!												&	+ wLOems*EkConservationLOems + wLOabs*EkConservationLOabs
-				wTotal(i_cell_initial,i_cell_final) =  wLOems*EkConservationLOems
+				wTotal(i_cell_initial,i_cell_final) =  wLOabs*EkConservationLOabs
 !!	----	2019.05.24 end
 			end if
 		end do	!	i_cell_final do loop
