@@ -153,7 +153,7 @@ subroutine param	!	set materials constants and calculate CMC transition table
 	qhbar   = echarge/hbar   			!	h->hbar
 	mdos = 0.20*m0						!	effective mass
 	alpha = (1.d0 - mdos/m0)**2/Egap	!	ƒoƒ“ƒh‚Ì”ñ•ú•¨ü«
-!	alpha = 0.	!	•ú•¨ü!!	----	2019.05.24 debug
+!!	alpha = 0.	!	•ú•¨ü!!	----	2019.05.24 debug
 !
 ! ===== subroutine Make_Orthogonal_Grid()
 ! ===== implicit none
@@ -169,8 +169,10 @@ subroutine param	!	set materials constants and calculate CMC transition table
     delta_kx = 2.*kx_max/nkx
     delta_ky = 2.*ky_max/nky
     delta_kz = 2.*kz_max/nkz
-    sgmGaussian = 1.0*(delta_kx*delta_ky*delta_kz)**(1.0/3.0)	!	delta function -> Gaussian
+!
+    sgmGaussian = 0.1*(delta_kx*delta_ky*delta_kz)**(1.0/3.0)	!	delta function -> Gaussian
     ModeSeparator = 300.0
+!
     write(*,*) 'delta_kx,delta_ky,delta_kz: ',delta_kx,delta_ky,delta_kz
 	write(8,*) 'delta_kx,delta_ky,delta_kz: ',delta_kx,delta_ky,delta_kz
 	write(*,*) 'm* ', mdos
@@ -311,7 +313,7 @@ subroutine param	!	set materials constants and calculate CMC transition table
 !!	----	2019.05.24 begin
 !!				wTotal(i_cell_initial,i_cell_final) = wLAems*EkConservationLAems + wLAabs*EkConservationLAabs  &
 !!												&	+ wLOems*EkConservationLOems + wLOabs*EkConservationLOabs
-				wTotal(i_cell_initial,i_cell_final) =  wLOabs*EkConservationLOabs
+				wTotal(i_cell_initial,i_cell_final) =  wLAems*EkConservationLAems
 !!	----	2019.05.24 end
 			end if
 		end do	!	i_cell_final do loop
@@ -328,7 +330,7 @@ subroutine param	!	set materials constants and calculate CMC transition table
 	allocate ( Rate_sum_to_final(i_cell_max) )
 	Max_sum_rate_to_final = 0.
 	do i_cell_initial=1, i_cell_max
-		write(*,*) 'i_cell_initial: ',i_cell_initial
+!		write(*,*) 'i_cell_initial: ',i_cell_initial
 		Rate_sum_temp = 0.	!	for each i_cell_initial
 		do i_cell_final=1, i_cell_max
 			Rate_sum_temp = Rate_sum_temp + wTotal(i_cell_initial,i_cell_final)
@@ -339,8 +341,7 @@ subroutine param	!	set materials constants and calculate CMC transition table
 		Rate_sum_to_final(i_cell_initial) = Rate_sum_temp	!	for each i_cell_initial
 		write(*,*) ' i_cell_initial, eee, Rate_sum_to_final: ',		&
 					&	i_cell_initial,' ',eee(i_cell_initial),' ',Rate_sum_to_final(i_cell_initial)
-		write(8,*) ' i_cell_initial, eee, Rate_sum_to_final: ',		&
-					&	i_cell_initial,' ',eee(i_cell_initial),' ',Rate_sum_to_final(i_cell_initial)
+		write(8,*) i_cell_initial,' ',eee(i_cell_initial),' ',Rate_sum_to_final(i_cell_initial)
 	end do	!	i_cell_initial do loop
 !!	----	2019.05.24 begin
 	return
